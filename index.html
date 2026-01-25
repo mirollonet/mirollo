@@ -18,47 +18,64 @@ body {
 h1 {
   font-size: 64px;
   font-weight: 600;
-  margin-bottom: 20px;
 }
 
 p {
-  font-size: 28px;
-  font-weight: 400;
-  margin: 6px 0;
-  opacity: 0.8;
+  font-size: 24px;
+  opacity: 0.7;
 }
 
-button {
-  margin-top: 50px;
-  padding: 16px 34px;
-  font-size: 20px;
-  border-radius: 10px;
+button, label {
+  padding: 14px 28px;
   border: 1px solid black;
+  border-radius: 10px;
+  font-size: 18px;
   background: white;
-  color: black;
-  font-weight: 500;
-  transition: all 0.15s ease;
+  cursor: pointer;
+  margin-top: 30px;
 }
 
-button:hover {
-  background: black;
-  color: white;
-}
+#uploader { display:none; }
 </style>
 </head>
 
 <body>
 
-<h1>Mi Rollo</h1>
-<p>36 photos</p>
+<div id="uploadScreen">
+  <h1>Mi Rollo</h1>
+  <p>36 slots</p>
+  <label for="uploader">Upload photos</label>
+  <input type="file" id="uploader" multiple accept="image/*">
+  <p id="count">0 / 36</p>
+</div>
 
-<button onclick="openRoll()">View roll</button>
+<div id="viewScreen" style="display:none;">
+  <h1>Mi Rollo</h1>
+  <p>Roll sealed</p>
+  <button>View roll</button>
+</div>
 
 <script>
-function openRoll() {
-  // Más adelante esto puede abrir la galería real
-  window.location.href = "gallery.html";
-}
+const maxPhotos = 36;
+const input = document.getElementById("uploader");
+const count = document.getElementById("count");
+const uploadScreen = document.getElementById("uploadScreen");
+const viewScreen = document.getElementById("viewScreen");
+
+input.onchange = () => {
+  let n = input.files.length;
+  if (n > maxPhotos) {
+    alert("Max " + maxPhotos + " photos");
+    input.value = "";
+    return;
+  }
+  count.innerText = n + " / " + maxPhotos;
+
+  if (n == maxPhotos) {
+    uploadScreen.style.display = "none";
+    viewScreen.style.display = "block";
+  }
+};
 </script>
 
 </body>
