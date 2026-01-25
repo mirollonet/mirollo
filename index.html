@@ -11,8 +11,8 @@ body {
   background: white;
   color: black;
   text-align: center;
-  padding-top: 35vh;
   margin: 0;
+  padding-top: 12vh;
 }
 
 h1 {
@@ -24,7 +24,32 @@ h1 {
 p {
   font-size: 28px;
   font-weight: 400;
-  margin: 4px 0;
+  margin: 6px 0;
+}
+
+/* iOS style phone icon */
+.phone {
+  display: inline-block;
+  width: 14px;
+  height: 24px;
+  border: 1.2px solid black;
+  border-radius: 2px;
+  position: relative;
+  top: 4px;
+  margin-left: 6px;
+  opacity: 0.8;
+}
+
+.phone::after {
+  content: "";
+  width: 3px;
+  height: 3px;
+  background: black;
+  border-radius: 50%;
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
 }
 </style>
 </head>
@@ -32,8 +57,8 @@ p {
 <body>
 
 <h1>Mi Rollo</h1>
-<p>36</p>
-<p>Tap</p>
+<p>36 photos</p>
+<p>Tap here <span class="phone"></span></p>
 
 </body>
 </html>
