@@ -4,78 +4,63 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mi Rollo</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
 <style>
 body {
   font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-  background: white;
-  color: black;
-  text-align: center;
-  margin: 0;
-  padding-top: 12vh;
+  text-align:center;
+  padding-top:10vh;
 }
-
-h1 {
-  font-size: 64px;
-  font-weight: 600;
+h1 { font-size:48px; }
+button {
+  padding:14px 30px;
+  font-size:18px;
+  border-radius:12px;
+  border:1px solid black;
+  background:white;
 }
-
-p {
-  font-size: 24px;
-  opacity: 0.7;
-}
-
-button, label {
-  padding: 14px 28px;
-  border: 1px solid black;
-  border-radius: 10px;
-  font-size: 18px;
-  background: white;
-  cursor: pointer;
-  margin-top: 30px;
-}
-
-#uploader { display:none; }
 </style>
 </head>
 
 <body>
 
-<div id="uploadScreen">
-  <h1>Mi Rollo</h1>
-  <p>36 slots</p>
-  <label for="uploader">Upload photos</label>
-  <input type="file" id="uploader" multiple accept="image/*">
-  <p id="count">0 / 36</p>
-</div>
+<h1>36 photos</h1>
+<p id="counter">Loading...</p>
 
-<div id="viewScreen" style="display:none;">
-  <h1>Mi Rollo</h1>
-  <p>Roll sealed</p>
-  <button>View roll</button>
-</div>
+<input type="file" id="fileInput" multiple accept="image/*"><br><br>
+<button onclick="uploadPhotos()">Upload photos</button>
 
 <script>
-const maxPhotos = 36;
-const input = document.getElementById("uploader");
-const count = document.getElementById("count");
-const uploadScreen = document.getElementById("uploadScreen");
-const viewScreen = document.getElementById("viewScreen");
+const SUPABASE_URL = "dzerpmnksarnywqpbgam";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4";
+const ROLL_CODE = "TEST001";
 
-input.onchange = () => {
-  let n = input.files.length;
-  if (n > maxPhotos) {
-    alert("Max " + maxPhotos + " photos");
-    input.value = "";
-    return;
-  }
-  count.innerText = n + " / " + maxPhotos;
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  if (n == maxPhotos) {
-    uploadScreen.style.display = "none";
-    viewScreen.style.display = "block";
+async function getCount() {
+  let { data } = await supabase.from("photos").select("*").eq("roll_code", ROLL_CODE);
+  document.getElementById("counter").innerText = data.length + " / 36 photos uploaded";
+}
+
+async function uploadPhotos() {
+  const files = document.getElementById("fileInput").files;
+  for (let file of files) {
+    const path = ROLL_CODE + "/" + Date.now() + "-" + file.name;
+
+    await supabase.storage.from("mirollo").upload(path, file);
+    const { data } = supabase.storage.from("mirollo").getPublicUrl(path);
+
+    await supabase.from("photos").insert({
+      roll_code: ROLL_CODE,
+      url: data.publicUrl
+    });
   }
-};
+  alert("Uploaded");
+  getCount();
+}
+
+getCount();
 </script>
 
 </body>
