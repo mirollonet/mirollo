@@ -4,7 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mi Rollo</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4";
+const ROLL_CODE = "TEST001";
+
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 <style>
 body {
