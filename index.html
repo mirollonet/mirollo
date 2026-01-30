@@ -2,18 +2,39 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Test</title>
+<title>Mi Rollo</title>
 </head>
 
-<body>
+<body style="font-family:-apple-system; text-align:center; margin-top:15vh;">
 
-<h1>TEST BOTON</h1>
+<h1>36 photos</h1>
 
-<button onclick="uploadPhotos()">UPLOAD</button>
+<input type="file" id="fileInput" accept="image/*"><br><br>
+<button onclick="uploadPhoto()">Upload</button>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-function uploadPhotos() {
-  alert("FUNCIONA");
+const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co";
+const SUPABASE_KEY = "PEGA_ACA_TU_ANON_KEY";
+
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+async function uploadPhoto() {
+  alert("clicked");
+
+  const file = document.getElementById("fileInput").files[0];
+  if (!file) return alert("No file selected");
+
+  const fileName = "TEST001/" + Date.now() + "-" + file.name;
+
+  const { error } = await supabase.storage.from("mirollo").upload(fileName, file);
+
+  if (error) {
+    alert("ERROR: " + error.message);
+  } else {
+    alert("UPLOADED");
+  }
 }
 </script>
 
