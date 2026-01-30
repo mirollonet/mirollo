@@ -1,72 +1,20 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mi Rollo</title>
-<const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4";
-const ROLL_CODE = "TEST001";
-
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-<style>
-body {
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-  text-align:center;
-  padding-top:10vh;
-}
-h1 { font-size:48px; }
-button {
-  padding:14px 30px;
-  font-size:18px;
-  border-radius:12px;
-  border:1px solid black;
-  background:white;
-}
-</style>
+<title>Test</title>
 </head>
 
 <body>
 
-<h1>36 photos</h1>
-<p id="counter">Loading...</p>
+<h1>TEST BOTON</h1>
 
-<input type="file" id="fileInput" multiple accept="image/*"><br><br>
-<button onclick="uploadPhotos()">Upload photos</button>
+<button onclick="uploadPhotos()">UPLOAD</button>
 
 <script>
-const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4";
-const ROLL_CODE = "TEST001";
-
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-async function getCount() {
-  let { data } = await supabase.from("photos").select("*").eq("roll_code", ROLL_CODE);
-  document.getElementById("counter").innerText = data.length + " / 36 photos uploaded";
+function uploadPhotos() {
+  alert("FUNCIONA");
 }
-
-async function uploadPhotos() {
-  const files = document.getElementById("fileInput").files;
-  for (let file of files) {
-    const path = ROLL_CODE + "/" + Date.now() + "-" + file.name;
-
-    await supabase.storage.from("mirollo").upload(path, file);
-    const { data } = supabase.storage.from("mirollo").getPublicUrl(path);
-
-    await supabase.from("photos").insert({
-      roll_code: ROLL_CODE,
-      url: data.publicUrl
-    });
-  }
-  alert("Uploaded");
-  getCount();
-}
-
-getCount();
 </script>
 
 </body>
