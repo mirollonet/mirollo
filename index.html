@@ -1,40 +1,17 @@
 <!DOCTYPE html>
 <html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mi Rollo</title>
-</head>
+<body>
 
-<body style="font-family:-apple-system; text-align:center; margin-top:15vh;">
-
-<h1>36 photos</h1>
-
-<input type="file" id="fileInput" accept="image/*"><br><br>
-<button onclick="uploadPhoto()">Upload</button>
+<button onclick="test()">TEST</button>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4
-";
-
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-async function uploadPhoto() {
-  alert("clicked");
-
-  const file = document.getElementById("fileInput").files[0];
-  if (!file) return alert("No file selected");
-
-  const fileName = "TEST001/" + Date.now() + "-" + file.name;
-
-  const { error } = await supabase.storage.from("mirollo").upload(fileName, file);
-
-  if (error) {
-    alert("ERROR: " + error.message);
+function test() {
+  if (window.supabase) {
+    alert("Supabase cargó");
   } else {
-    alert("UPLOADED");
+    alert("Supabase NO cargó");
   }
 }
 </script>
