@@ -2,10 +2,10 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mi Rollo</title>
 
-  <!-- Supabase v2 -->
+  <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
@@ -25,104 +25,115 @@
       background: white;
       cursor: pointer;
     }
-    input {
-      margin: 20px 0;
+    button:disabled {
+      opacity: 0.5;
     }
   </style>
 </head>
 
 <body>
 
-  <h1>36 photos</h1>
-  <p id="counter">Loading…</p>
+  <h1>Mi Rollo</h1>
+  <p id="counter">Cargando...</p>
 
   <input type="file" id="fileInput" multiple accept="image/*" />
   <br><br>
-  <button id="uploadBtn">Upload photos</button>
+  <button id="uploadBtn">Upload</button>
 
   <script>
-    // 🔑 SUPABASE
+    // 🔹 CONFIGURACIÓN
     const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4"
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4
 
+";
     const ROLL_CODE = "TEST001";
+    const BUCKET = "mirollo";
 
-    const supabase = supabase.createClient(
+    // 🔹 CLIENTE SUPABASE (NO tocar)
+    const client = supabase.createClient(
       SUPABASE_URL,
       SUPABASE_ANON_KEY
     );
 
-    // 📊 CONTADOR
+    // 🔹 ELEMENTOS
+    const counter = document.getElementById("counter");
+    const fileInput = document.getElementById("fileInput");
+    const uploadBtn = document.getElementById("uploadBtn");
+
+    // 🔹 CONTADOR
     async function getCount() {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from("photos")
         .select("id")
         .eq("roll_code", ROLL_CODE);
 
       if (error) {
         console.error(error);
-        document.getElementById("counter").innerText = "Error loading count";
+        counter.innerText = "Error leyendo fotos";
         return;
       }
 
-      document.getElementById("counter").innerText =
-        `${data.length} / 36 photos uploaded`;
+      counter.innerText = `${data.length} / 36 fotos cargadas`;
     }
 
-    // ⬆️ UPLOAD
+    // 🔹 UPLOAD
     async function uploadPhotos() {
-      const files = document.getElementById("fileInput").files;
-
+      const files = fileInput.files;
       if (!files.length) {
-        alert("No files selected");
+        alert("Elegí al menos una foto");
         return;
       }
+
+      uploadBtn.disabled = true;
 
       for (const file of files) {
         const filePath =
           `${ROLL_CODE}/${Date.now()}-${file.name}`;
 
-        // 1️⃣ SUBIR A STORAGE
-        const { error: uploadError } = await supabase
+        // 1️⃣ subir archivo
+        const { error: uploadError } = await client
           .storage
-          .from("mirollo")
+          .from(BUCKET)
           .upload(filePath, file);
 
         if (uploadError) {
           console.error(uploadError);
-          alert("Storage upload error");
+          alert("Error subiendo archivo");
+          uploadBtn.disabled = false;
           return;
         }
 
-        // 2️⃣ URL PÚBLICA
-        const { data: urlData } = supabase
+        // 2️⃣ obtener URL pública
+        const { data } = client
           .storage
-          .from("mirollo")
+          .from(BUCKET)
           .getPublicUrl(filePath);
 
-        // 3️⃣ INSERT EN TABLE
-        const { error: insertError } = await supabase
+        // 3️⃣ guardar en tabla
+        const { error: insertError } = await client
           .from("photos")
           .insert({
             roll_code: ROLL_CODE,
-            url: urlData.publicUrl
+            url: data.publicUrl
           });
 
         if (insertError) {
           console.error(insertError);
-          alert("Database insert error");
+          alert("Error guardando en la base");
+          uploadBtn.disabled = false;
           return;
         }
       }
 
-      alert("Uploaded ✔");
+      alert("Fotos cargadas ✅");
+      fileInput.value = "";
+      uploadBtn.disabled = false;
       getCount();
     }
 
-    document
-      .getElementById("uploadBtn")
-      .addEventListener("click", uploadPhotos);
+    uploadBtn.addEventListener("click", uploadPhotos);
 
+    // INIT
     getCount();
   </script>
 
