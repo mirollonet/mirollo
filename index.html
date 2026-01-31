@@ -1,46 +1,130 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta charset="UTF-8">
-<title>Mari te amo>/title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mi Rollo</title>
+
+  <!-- Supabase v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      text-align: center;
+      padding-top: 10vh;
+    }
+    h1 {
+      font-size: 42px;
+    }
+    button {
+      padding: 14px 30px;
+      font-size: 18px;
+      border-radius: 12px;
+      border: 1px solid black;
+      background: white;
+      cursor: pointer;
+    }
+    input {
+      margin: 20px 0;
+    }
+  </style>
 </head>
 
-<body style="font-family:-apple-system, BlinkMacSystemFont, sans-serif; text-align:center; margin-top:15vh;">
+<body>
 
-<h1>Mari te amo</h1>
+  <h1>36 photos</h1>
+  <p id="counter">Loading…</p>
 
-<input type="file" id="fileInput" accept="image/*">
-<br><br>
-<button onclick="upload()">Upload</button>
+  <input type="file" id="fileInput" multiple accept="image/*" />
+  <br><br>
+  <button id="uploadBtn">Upload photos</button>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // 🔑 SUPABASE
+    const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4;
 
-<script>
-const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4"
+    const ROLL_CODE = "TEST001";
 
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const supabase = supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY
+    );
 
-async function upload() {
-  alert("CLICKED");
+    // 📊 CONTADOR
+    async function getCount() {
+      const { data, error } = await supabase
+        .from("photos")
+        .select("id")
+        .eq("roll_code", ROLL_CODE);
 
-  const file = document.getElementById("fileInput").files[0];
-  if (!file) return alert("NO FILE SELECTED");
+      if (error) {
+        console.error(error);
+        document.getElementById("counter").innerText = "Error loading count";
+        return;
+      }
 
-  const fileName = "TEST001/" + Date.now() + "-" + file.name;
+      document.getElementById("counter").innerText =
+        `${data.length} / 36 photos uploaded`;
+    }
 
-  const { error } = await sb.storage
-    .from("mirollo")
-    .upload(fileName, file);
+    // ⬆️ UPLOAD
+    async function uploadPhotos() {
+      const files = document.getElementById("fileInput").files;
 
-  if (error) {
-    alert("ERROR: " + error.message);
-  } else {
-    alert("UPLOADED OK");
-  }
-}
-</script>
+      if (!files.length) {
+        alert("No files selected");
+        return;
+      }
+
+      for (const file of files) {
+        const filePath =
+          `${ROLL_CODE}/${Date.now()}-${file.name}`;
+
+        // 1️⃣ SUBIR A STORAGE
+        const { error: uploadError } = await supabase
+          .storage
+          .from("mirollo")
+          .upload(filePath, file);
+
+        if (uploadError) {
+          console.error(uploadError);
+          alert("Storage upload error");
+          return;
+        }
+
+        // 2️⃣ URL PÚBLICA
+        const { data: urlData } = supabase
+          .storage
+          .from("mirollo")
+          .getPublicUrl(filePath);
+
+        // 3️⃣ INSERT EN TABLE
+        const { error: insertError } = await supabase
+          .from("photos")
+          .insert({
+            roll_code: ROLL_CODE,
+            url: urlData.publicUrl
+          });
+
+        if (insertError) {
+          console.error(insertError);
+          alert("Database insert error");
+          return;
+        }
+      }
+
+      alert("Uploaded ✔");
+      getCount();
+    }
+
+    document
+      .getElementById("uploadBtn")
+      .addEventListener("click", uploadPhotos);
+
+    getCount();
+  </script>
 
 </body>
 </html>
