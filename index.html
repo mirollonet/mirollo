@@ -1,196 +1,136 @@
-<!DOCTYPE html>
+<!<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mi Rollo</title>
 
-  <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      text-align: center;
-      padding: 6vh 16px;
-    }
-
-    h1 {
-      font-size: 42px;
-      margin-bottom: 8px;
-    }
-
-    #counter {
-      margin-bottom: 16px;
-      font-size: 16px;
-      opacity: 0.8;
-    }
-
-    input[type="file"] {
-      margin-bottom: 12px;
-    }
-
-    button {
-      padding: 14px 30px;
-      font-size: 18px;
-      border-radius: 12px;
-      border: 1px solid black;
-      background: white;
-      cursor: pointer;
-    }
-
-    button:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-
-    /* --- Gallery --- */
-    .gallery {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-      gap: 10px;
-      margin-top: 20px;
-    }
-
-    .gallery img {
-      width: 100%;
-      height: 90px;
-      object-fit: cover;
-      border-radius: 6px;
-    }
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; text-align: center; padding: 6vh 16px; }
+    h1 { font-size: 42px; margin-bottom: 8px; }
+    #counter { margin-bottom: 16px; font-size: 16px; opacity: 0.8; }
+    input[type="file"] { margin-bottom: 12px; }
+    button { padding: 14px 30px; font-size: 18px; border-radius: 12px; border: 1px solid black; background: white; cursor: pointer; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; margin-top: 20px; }
+    .gallery img { width: 100%; height: 90px; object-fit: cover; border-radius: 6px; }
   </style>
 </head>
-
 <body>
 
-  <h1>36 fotos</h1>
-  <div id="counter">Revelando…</div>
+<h1>36 fotos</h1>
+<div id="counter">Revelando…</div>
 
-  <input type="file" id="fileInput" multiple accept="image/*" />
-  <br />
-  <button id="uploadBtn">Revelar Fotos</button>
+<input type="file" id="fileInput" multiple accept="image/*" />
+<br />
+<button id="uploadBtn">Revelar Fotos</button>
 
 <div id="fullMessage" style="display:none; margin-top:12px; font-weight:600;">
   Rollo revelado
 </div>
 
-  <div id="gallery" class="gallery"></div>
+<div id="gallery" class="gallery"></div>
 
-  <script>
-    console.log("JS start");
+<script>
+  const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co";
+  const SUPABASE_ANON_KEY ="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4";
+  const ROLL_CODE = "TEST001";
+  const MAX_PHOTOS = 36;
+  const BUCKET = "mirollo";
 
-    /* --- CONFIG --- */
-    const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co";
-    const SUPABASE_ANON_KEY ="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4";
+  const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const ROLL_CODE = "TEST001";
-    const MAX_PHOTOS = 36;
-    const BUCKET = "mirollo";
+  const counter = document.getElementById("counter");
+  const gallery = document.getElementById("gallery");
+  const uploadBtn = document.getElementById("uploadBtn");
+  const fileInput = document.getElementById("fileInput");
+  const fullMessage = document.getElementById("fullMessage");
 
-    /* --- CLIENT --- */
-    const client = supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_ANON_KEY
-    );
+  async function loadGallery() {
+    gallery.innerHTML = "";
+    const { data, error } = await client.from("photos_v2").select("url").eq("roll_code", ROLL_CODE);
 
-    console.log("Supabase ready");
+    if (error) {
+      console.error("Load error", error);
+      counter.innerText = "Error al cargar las fotos";
+      return;
+    }
 
-    /* --- LOAD COUNT + GALLERY --- */
-    async function loadGallery() {
-      const counter = document.getElementById("counter");
-      const gallery = document.getElementById("gallery");
-      gallery.innerHTML = "";
+    counter.innerText = `${data.length} / ${MAX_PHOTOS} fotos`;
 
-      const { data, error } = await client
-        .from("photos_v2")
-        .select("url")
-        .eq("roll_code", ROLL_CODE)
+    data.forEach(photo => {
+      const img = document.createElement("img");
+      img.src = photo.url;
+      gallery.appendChild(img);
+    });
 
-      if (error) {
-        console.error("Load error", error);
-        counter.innerText = "Error al cargar las fotos";
+    if (data.length >= MAX_PHOTOS) {
+      uploadBtn.innerText = "Rollo Revelado";
+      uploadBtn.disabled = true;
+      fileInput.style.display = "none";
+      fullMessage.style.display = "block";
+    } else {
+      uploadBtn.innerText = "Revelar Fotos";
+      uploadBtn.disabled = false;
+      fileInput.style.display = "block";
+      fullMessage.style.display = "none";
+    }
+  }
+
+  async function uploadPhotos() {
+    uploadBtn.disabled = true;
+
+    const { data: existingPhotos } = await client.from("photos_v2").select("id").eq("roll_code", ROLL_CODE);
+    const existingCount = existingPhotos.length;
+    const remainingSlots = MAX_PHOTOS - existingCount;
+
+    const files = Array.from(fileInput.files);
+    if (!files.length) {
+      uploadBtn.disabled = false;
+      return;
+    }
+
+    // Limitar los archivos si exceden el máximo
+    let filesToUpload = files;
+    if (files.length > remainingSlots) {
+      filesToUpload = files.slice(0, remainingSlots);
+      alert(`Solo se pueden subir ${remainingSlots} fotos más. Se subirán las primeras seleccionadas.`);
+    }
+
+    for (const file of filesToUpload) {
+      const filePath = `${ROLL_CODE}/${Date.now()}-${file.name}`;
+
+      const { error: uploadError } = await client.storage.from(BUCKET).upload(filePath, file);
+      if (uploadError) {
+        console.error("Upload error", uploadError);
+        uploadBtn.disabled = false;
         return;
       }
 
-      counter.innerText = `${data.length} / ${MAX_PHOTOS} fotos`;
+      const { data: publicUrlData } = client.storage.from(BUCKET).getPublicUrl(filePath);
 
-for (const photo of data) {
-  const img = document.createElement("img");
-  img.src = photo.url;
-  gallery.appendChild(img);
-}
+      const { error: insertError } = await client.from("photos_v2").insert({
+        roll_code: ROLL_CODE,
+        url: publicUrlData.publicUrl
+      });
 
-const uploadBtn = document.getElementById("uploadBtn");
-const fileInput = document.getElementById("fileInput");
-const fullMessage = document.getElementById("fullMessage");
-
-if (data.length >= MAX_PHOTOS) {
-  uploadBtn.style.display = "none";
-  fileInput.style.display = "none";
-  fullMessage.style.display = "block";
-} else {
-  uploadBtn.style.display = "inline-block";
-  fileInput.style.display = "block";
-  fullMessage.style.display = "none";
-}
+      if (insertError) {
+        console.error("Insert error", insertError);
+        uploadBtn.disabled = false;
+        return;
       }
     }
 
-    /* --- UPLOAD --- */
-    async function uploadPhotos() 
-    {  const { data: existingPhotos } = await client
-    .from("photos_v2")
-    .select("id")
-    .eq("roll_code", ROLL_CODE);
-
-  if (existingPhotos.length >= MAX_PHOTOS) {
-    alert("Este rollo ya fue revelado");
-    return;
-  }
-      const files = document.getElementById("fileInput").files;
-      if (!files.length) return;
-
-      for (const file of files) {
-        const filePath =
-          `${ROLL_CODE}/${Date.now()}-${file.name}`;
-
-        const { error: uploadError } =
-          await client.storage
-            .from(BUCKET)
-            .upload(filePath, file);
-
-        if (uploadError) {
-          console.error("Upload error", uploadError);
-          return;
-        }
-
-        const { data: publicUrlData } =
-          client.storage
-            .from(BUCKET)
-            .getPublicUrl(filePath);
-
-        const { error: insertError } =
-          await client.from("photos_v2").insert({
-            roll_code: ROLL_CODE,
-            url: publicUrlData.publicUrl
-          });
-
-        if (insertError) {
-          console.error("Insert error", insertError);
-          return;
-        }
-      }
-
-      document.getElementById("fileInput").value = "";
-      loadGallery();
-    }
-document.getElementById("uploadBtn").innerText = "Revelar Fotos";
-    document
-      .getElementById("uploadBtn")
-      .addEventListener("click", uploadPhotos);
-
+    fileInput.value = "";
+    uploadBtn.disabled = false;
     loadGallery();
-  </script>
+  }
+
+  uploadBtn.addEventListener("click", uploadPhotos);
+  loadGallery();
+</script>
 
 </body>
 </html>
