@@ -1,4 +1,4 @@
-<!<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -16,6 +16,29 @@
     button:disabled { opacity: 0.4; cursor: not-allowed; }
     .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; margin-top: 20px; }
     .gallery img { width: 100%; height: 90px; object-fit: cover; border-radius: 6px; }
+    label { display: block; margin-bottom: 6px; font-weight: 500; }
+
+    /* Loader tipo cámara */
+    #loader {
+      display: none;
+      margin-top: 12px;
+      font-weight: 600;
+    }
+
+    .camera {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      margin-left: 6px;
+      background: black;
+      border-radius: 50%;
+      animation: flash 1s infinite;
+    }
+
+    @keyframes flash {
+      0%, 70%, 100% { transform: scale(1); opacity: 0.2; }
+      35% { transform: scale(1.5); opacity: 1; }
+    }
   </style>
 </head>
 <body>
@@ -23,9 +46,14 @@
 <h1>36 fotos</h1>
 <div id="counter">Revelando…</div>
 
+<label for="fileInput" id="fileLabel">Seleccionar fotos</label>
 <input type="file" id="fileInput" multiple accept="image/*" />
 <br />
 <button id="uploadBtn">Revelar Fotos</button>
+
+<div id="loader">
+  Subiendo <span id="uploadedCount">0</span> / 36 <span class="camera"></span>
+</div>
 
 <div id="fullMessage" style="display:none; margin-top:12px; font-weight:600;">
   Rollo revelado
@@ -47,6 +75,9 @@
   const uploadBtn = document.getElementById("uploadBtn");
   const fileInput = document.getElementById("fileInput");
   const fullMessage = document.getElementById("fullMessage");
+  const fileLabel = document.getElementById("fileLabel");
+  const loader = document.getElementById("loader");
+  const uploadedCountSpan = document.getElementById("uploadedCount");
 
   async function loadGallery() {
     gallery.innerHTML = "";
@@ -65,6 +96,13 @@
       img.src = photo.url;
       gallery.appendChild(img);
     });
+
+    const remainingSlots = MAX_PHOTOS - data.length;
+    if (remainingSlots > 0) {
+      fileLabel.innerText = `Seleccionar hasta ${remainingSlots} foto${remainingSlots > 1 ? "s" : ""}`;
+    } else {
+      fileLabel.innerText = "Rollo completado";
+    }
 
     if (data.length >= MAX_PHOTOS) {
       uploadBtn.innerText = "Rollo Revelado";
@@ -86,25 +124,29 @@
     const existingCount = existingPhotos.length;
     const remainingSlots = MAX_PHOTOS - existingCount;
 
-    const files = Array.from(fileInput.files);
+    let files = Array.from(fileInput.files);
     if (!files.length) {
       uploadBtn.disabled = false;
       return;
     }
 
-    // Limitar los archivos si exceden el máximo
-    let filesToUpload = files;
     if (files.length > remainingSlots) {
-      filesToUpload = files.slice(0, remainingSlots);
+      files = files.slice(0, remainingSlots);
       alert(`Solo se pueden subir ${remainingSlots} fotos más. Se subirán las primeras seleccionadas.`);
     }
 
-    for (const file of filesToUpload) {
+    loader.style.display = "block";
+    uploadedCountSpan.innerText = "0";
+
+    let uploadedCount = 0;
+
+    for (const file of files) {
       const filePath = `${ROLL_CODE}/${Date.now()}-${file.name}`;
 
       const { error: uploadError } = await client.storage.from(BUCKET).upload(filePath, file);
       if (uploadError) {
         console.error("Upload error", uploadError);
+        loader.style.display = "none";
         uploadBtn.disabled = false;
         return;
       }
@@ -118,12 +160,17 @@
 
       if (insertError) {
         console.error("Insert error", insertError);
+        loader.style.display = "none";
         uploadBtn.disabled = false;
         return;
       }
+
+      uploadedCount++;
+      uploadedCountSpan.innerText = uploadedCount + existingCount;
     }
 
     fileInput.value = "";
+    loader.style.display = "none";
     uploadBtn.disabled = false;
     loadGallery();
   }
