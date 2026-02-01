@@ -63,12 +63,19 @@
 
 <body>
 
-  <h1>36 photos</h1>
-  <div id="counter">Loading…</div>
+  <h1>36 fotos</h1>
+  <div id="counter">Revelando…</div>
 
   <input type="file" id="fileInput" multiple accept="image/*" />
   <br />
-  <button id="uploadBtn">Upload photos</button>
+  <button id="uploadBtn">Revelar Fotos</button>
+  <input type="file" id="fileInput" multiple accept="image/*" />
+<br />
+<button id="uploadBtn">Revelar fotos</button>
+
+<div id="fullMessage" style="display:none; margin-top:12px; font-weight:600;">
+  Rollo revelado
+</div>
 
   <div id="gallery" class="gallery"></div>
 
@@ -105,7 +112,7 @@
 
       if (error) {
         console.error("Load error", error);
-        counter.innerText = "Error loading photos";
+        counter.innerText = "Error al cargar las fotos";
         return;
       }
 
