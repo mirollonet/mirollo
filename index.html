@@ -5,151 +5,168 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mi Rollo</title>
 
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      background: white;
       text-align: center;
-      padding-top: 12vh;
+      padding: 6vh 16px;
     }
 
     h1 {
-      font-size: 48px;
-      margin-bottom: 10px;
+      font-size: 42px;
+      margin-bottom: 8px;
     }
 
-    p {
-      color: #555;
-      margin-bottom: 30px;
+    #counter {
+      margin-bottom: 16px;
+      font-size: 16px;
+      opacity: 0.8;
     }
 
-    input {
-      margin-bottom: 20px;
+    input[type="file"] {
+      margin-bottom: 12px;
     }
 
     button {
-      padding: 14px 34px;
+      padding: 14px 30px;
       font-size: 18px;
-      border-radius: 14px;
+      border-radius: 12px;
       border: 1px solid black;
       background: white;
       cursor: pointer;
     }
-      .gallery {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-    gap: 10px;
-    margin-top: 16px;
-  }
 
-  .gallery img {
-    width: 100%;
-    height: 90px;
-    object-fit: cover;
-    border-radius: 6px;
-  }
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* --- Gallery --- */
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .gallery img {
+      width: 100%;
+      height: 90px;
+      object-fit: cover;
+      border-radius: 6px;
+    }
   </style>
 </head>
 
 <body>
 
   <h1>36 photos</h1>
-  <p id="counter">Loading…</p>
-<div id="gallery" class="gallery"></div>
-  
+  <div id="counter">Loading…</div>
+
   <input type="file" id="fileInput" multiple accept="image/*" />
-  <br><br>
+  <br />
   <button id="uploadBtn">Upload photos</button>
 
-  <!-- SUPABASE -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <div id="gallery" class="gallery"></div>
 
-  <!-- APP -->
   <script>
     console.log("JS start");
 
+    /* --- CONFIG --- */
     const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4";
+    const SUPABASE_ANON_KEY ="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4";
 
     const ROLL_CODE = "TEST001";
     const MAX_PHOTOS = 36;
     const BUCKET = "mirollo";
 
+    /* --- CLIENT --- */
     const client = supabase.createClient(
       SUPABASE_URL,
-      SUPABASE_KEY
+      SUPABASE_ANON_KEY
     );
 
     console.log("Supabase ready");
 
-    // 🔢 CONTADOR
-    async function getCount() {
+    /* --- LOAD COUNT + GALLERY --- */
+    async function loadGallery() {
+      const counter = document.getElementById("counter");
+      const gallery = document.getElementById("gallery");
+      gallery.innerHTML = "";
+
       const { data, error } = await client
         .from("photos_v2")
-        .select("id")
-        .eq("roll_code", ROLL_CODE);
+        .select("url")
+        .eq("roll_code", ROLL_CODE)
+        .order("created_at", { ascending: true });
 
       if (error) {
-        console.error("Count error", error);
-        document.getElementById("counter").innerText = "Error";
+        console.error("Load error", error);
+        counter.innerText = "Error loading photos";
         return;
       }
 
-      document.getElementById("counter").innerText =
-        data.length + " / " + MAX_PHOTOS + " photos uploaded";
+      counter.innerText = `${data.length} / ${MAX_PHOTOS} photos`;
+
+      for (const photo of data) {
+        const img = document.createElement("img");
+        img.src = photo.url;
+        gallery.appendChild(img);
+      }
+
+      if (data.length >= MAX_PHOTOS) {
+        document.getElementById("uploadBtn").disabled = true;
+      }
     }
 
-    // ⬆️ UPLOAD
+    /* --- UPLOAD --- */
     async function uploadPhotos() {
-      console.log("Upload clicked");
-
       const files = document.getElementById("fileInput").files;
-      if (!files.length) {
-        alert("Select photos first");
-        return;
-      }
+      if (!files.length) return;
 
       for (const file of files) {
-        const path = `${ROLL_CODE}/${Date.now()}-${file.name}`;
+        const filePath =
+          `${ROLL_CODE}/${Date.now()}-${file.name}`;
 
-        const { error: uploadError } = await client
-          .storage
-          .from(BUCKET)
-          .upload(path, file);
+        const { error: uploadError } =
+          await client.storage
+            .from(BUCKET)
+            .upload(filePath, file);
 
         if (uploadError) {
-          console.error("Storage error", uploadError);
-          alert("Storage error");
+          console.error("Upload error", uploadError);
           return;
         }
 
-        const { data } = client
-          .storage
-          .from(BUCKET)
-          .getPublicUrl(path);
+        const { data: publicUrlData } =
+          client.storage
+            .from(BUCKET)
+            .getPublicUrl(filePath);
 
-        const { error: insertError } = await client
-          .from("photos_v2")
-          .insert({
+        const { error: insertError } =
+          await client.from("photos_v2").insert({
             roll_code: ROLL_CODE,
-            url: data.publicUrl
+            url: publicUrlData.publicUrl
           });
 
         if (insertError) {
-          console.error("DB error", insertError);
-          alert("Database error");
+          console.error("Insert error", insertError);
           return;
         }
       }
 
-      alert("Photos uploaded");
-      getCount();
+      document.getElementById("fileInput").value = "";
+      loadGallery();
     }
 
-    document.getElementById("uploadBtn").addEventListener("click", uploadPhotos);
+    document
+      .getElementById("uploadBtn")
+      .addEventListener("click", uploadPhotos);
 
-    // INIT
-    getCount();
+    loadGallery();
   </script>
 
 </body>
