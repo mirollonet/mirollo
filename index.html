@@ -184,7 +184,7 @@ if (data.length >= MAX_PHOTOS) {
       document.getElementById("fileInput").value = "";
       loadGallery();
     }
-
+document.getElementById("uploadBtn").innerText = "Revelar Fotos";
     document
       .getElementById("uploadBtn")
       .addEventListener("click", uploadPhotos);
