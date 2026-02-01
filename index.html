@@ -1,84 +1,142 @@
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-console.log("JS start");
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mi Rollo</title>
 
-const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4";
-
-const ROLL_CODE = "TEST001";
-const MAX_PHOTOS = 36;
-const BUCKET = "mirollo";
-
-const client = supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
-
-console.log("Supabase ready");
-
-async function getCount() {
-  const { data, error } = await client
-    .from("photos_v2")
-    .select("id")
-    .eq("roll_code", ROLL_CODE);
-
-  if (error) {
-    console.error("Count error", error);
-    document.getElementById("counter").innerText = "Error";
-    return;
-  }
-
-  document.getElementById("counter").innerText =
-    data.length + " / " + MAX_PHOTOS + " photos uploaded";
-}
-
-async function uploadPhotos() {
-  console.log("Upload clicked");
-
-  const files = document.getElementById("fileInput").files;
-  if (!files.length) {
-    alert("Select photos first");
-    return;
-  }
-
-  for (const file of files) {
-    const path = `${ROLL_CODE}/${Date.now()}-${file.name}`;
-
-    const { error: uploadError } = await client
-      .storage
-      .from(BUCKET)
-      .upload(path, file);
-
-    if (uploadError) {
-      console.error(uploadError);
-      alert("Storage error");
-      return;
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: white;
+      text-align: center;
+      padding-top: 12vh;
     }
 
-    const { data } = client
-      .storage
-      .from(BUCKET)
-      .getPublicUrl(path);
-
-    const { error: insertError } = await client
-      .from("photos_v2")
-      .insert({
-        roll_code: ROLL_CODE,
-        url: data.publicUrl
-      });
-
-    if (insertError) {
-      console.error(insertError);
-      alert("DB error");
-      return;
+    h1 {
+      font-size: 48px;
+      margin-bottom: 10px;
     }
-  }
 
-  alert("Photos uploaded");
-  getCount();
-}
+    p {
+      color: #555;
+      margin-bottom: 30px;
+    }
 
-document.getElementById("uploadBtn").onclick = uploadPhotos;
+    input {
+      margin-bottom: 20px;
+    }
 
-getCount();
-</script>
+    button {
+      padding: 14px 34px;
+      font-size: 18px;
+      border-radius: 14px;
+      border: 1px solid black;
+      background: white;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>36 photos</h1>
+  <p id="counter">Loading…</p>
+
+  <input type="file" id="fileInput" multiple accept="image/*" />
+  <br><br>
+  <button id="uploadBtn">Upload photos</button>
+
+  <!-- SUPABASE -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- APP -->
+  <script>
+    console.log("JS start");
+
+    const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4";
+
+    const ROLL_CODE = "TEST001";
+    const MAX_PHOTOS = 36;
+    const BUCKET = "mirollo";
+
+    const client = supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_KEY
+    );
+
+    console.log("Supabase ready");
+
+    // 🔢 CONTADOR
+    async function getCount() {
+      const { data, error } = await client
+        .from("photos_v2")
+        .select("id")
+        .eq("roll_code", ROLL_CODE);
+
+      if (error) {
+        console.error("Count error", error);
+        document.getElementById("counter").innerText = "Error";
+        return;
+      }
+
+      document.getElementById("counter").innerText =
+        data.length + " / " + MAX_PHOTOS + " photos uploaded";
+    }
+
+    // ⬆️ UPLOAD
+    async function uploadPhotos() {
+      console.log("Upload clicked");
+
+      const files = document.getElementById("fileInput").files;
+      if (!files.length) {
+        alert("Select photos first");
+        return;
+      }
+
+      for (const file of files) {
+        const path = `${ROLL_CODE}/${Date.now()}-${file.name}`;
+
+        const { error: uploadError } = await client
+          .storage
+          .from(BUCKET)
+          .upload(path, file);
+
+        if (uploadError) {
+          console.error("Storage error", uploadError);
+          alert("Storage error");
+          return;
+        }
+
+        const { data } = client
+          .storage
+          .from(BUCKET)
+          .getPublicUrl(path);
+
+        const { error: insertError } = await client
+          .from("photos_v2")
+          .insert({
+            roll_code: ROLL_CODE,
+            url: data.publicUrl
+          });
+
+        if (insertError) {
+          console.error("DB error", insertError);
+          alert("Database error");
+          return;
+        }
+      }
+
+      alert("Photos uploaded");
+      getCount();
+    }
+
+    document.getElementById("uploadBtn").addEventListener("click", uploadPhotos);
+
+    // INIT
+    getCount();
+  </script>
+
+</body>
+</html>
