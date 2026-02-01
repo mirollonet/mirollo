@@ -63,7 +63,7 @@
     // 🔹 CONTADOR
     async function getCount() {
       const { data, error } = await client
-        .from("photos")
+        .from("photos_v2")
         .select("id")
         .eq("roll_code", ROLL_CODE);
 
@@ -111,7 +111,7 @@
 
         // 3️⃣ guardar en tabla
         const { error: insertError } = await client
-          .from("photos")
+          .from("photos_v2")
           .insert({
             roll_code: ROLL_CODE,
             url: data.publicUrl
