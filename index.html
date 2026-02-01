@@ -1,15 +1,84 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  console.log("JS OK");
+console.log("JS start");
 
-  const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co";
-  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4";
+const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4";
 
-  const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const ROLL_CODE = "TEST001";
+const MAX_PHOTOS = 36;
+const BUCKET = "mirollo";
 
-  console.log("Supabase client created", client);
+const client = supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+console.log("Supabase ready");
+
+async function getCount() {
+  const { data, error } = await client
+    .from("photos_v2")
+    .select("id")
+    .eq("roll_code", ROLL_CODE);
+
+  if (error) {
+    console.error("Count error", error);
+    document.getElementById("counter").innerText = "Error";
+    return;
+  }
+
+  document.getElementById("counter").innerText =
+    data.length + " / " + MAX_PHOTOS + " photos uploaded";
+}
+
+async function uploadPhotos() {
+  console.log("Upload clicked");
+
+  const files = document.getElementById("fileInput").files;
+  if (!files.length) {
+    alert("Select photos first");
+    return;
+  }
+
+  for (const file of files) {
+    const path = `${ROLL_CODE}/${Date.now()}-${file.name}`;
+
+    const { error: uploadError } = await client
+      .storage
+      .from(BUCKET)
+      .upload(path, file);
+
+    if (uploadError) {
+      console.error(uploadError);
+      alert("Storage error");
+      return;
+    }
+
+    const { data } = client
+      .storage
+      .from(BUCKET)
+      .getPublicUrl(path);
+
+    const { error: insertError } = await client
+      .from("photos_v2")
+      .insert({
+        roll_code: ROLL_CODE,
+        url: data.publicUrl
+      });
+
+    if (insertError) {
+      console.error(insertError);
+      alert("DB error");
+      return;
+    }
+  }
+
+  alert("Photos uploaded");
+  getCount();
+}
+
+document.getElementById("uploadBtn").onclick = uploadPhotos;
+
+getCount();
 </script>
-
-
-</body>
-</html>
