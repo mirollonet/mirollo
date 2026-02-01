@@ -138,7 +138,16 @@ if (data.length >= MAX_PHOTOS) {
     }
 
     /* --- UPLOAD --- */
-    async function uploadPhotos() {
+    async function uploadPhotos() 
+    {  const { data: existingPhotos } = await client
+    .from("photos_v2")
+    .select("id")
+    .eq("roll_code", ROLL_CODE);
+
+  if (existingPhotos.length >= MAX_PHOTOS) {
+    alert("Este rollo ya fue revelado");
+    return;
+  }
       const files = document.getElementById("fileInput").files;
       if (!files.length) return;
 
