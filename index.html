@@ -113,16 +113,27 @@
         return;
       }
 
-      counter.innerText = `${data.length} / ${MAX_PHOTOS} photos`;
+      counter.innerText = `${data.length} / ${MAX_PHOTOS} fotos`;
 
-      for (const photo of data) {
-        const img = document.createElement("img");
-        img.src = photo.url;
-        gallery.appendChild(img);
-      }
+for (const photo of data) {
+  const img = document.createElement("img");
+  img.src = photo.url;
+  gallery.appendChild(img);
+}
 
-      if (data.length >= MAX_PHOTOS) {
-        document.getElementById("uploadBtn").disabled = true;
+const uploadBtn = document.getElementById("uploadBtn");
+const fileInput = document.getElementById("fileInput");
+const fullMessage = document.getElementById("fullMessage");
+
+if (data.length >= MAX_PHOTOS) {
+  uploadBtn.style.display = "none";
+  fileInput.style.display = "none";
+  fullMessage.style.display = "block";
+} else {
+  uploadBtn.style.display = "inline-block";
+  fileInput.style.display = "block";
+  fullMessage.style.display = "none";
+}
       }
     }
 
