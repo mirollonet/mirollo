@@ -105,7 +105,6 @@
         .from("photos_v2")
         .select("url")
         .eq("roll_code", ROLL_CODE)
-        .order("created_at", { ascending: true });
 
       if (error) {
         console.error("Load error", error);
