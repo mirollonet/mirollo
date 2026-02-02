@@ -28,24 +28,8 @@ input[type="file"] { display: none; }
   margin-bottom: 12px;
 }
 
-/* Loader tipo cámara */
+/* Loader simple */
 #loader { display: none; margin-top: 12px; font-weight:600; }
-.camera {
-  display: inline-block;
-  width:12px;
-  height:12px;
-  margin-left:6px;
-  background:black;
-  border-radius:50%;
-}
-.flash-photo {
-  animation: flashPhoto 0.4s ease-in-out;
-}
-@keyframes flashPhoto {
-  0%   { transform: scale(1); opacity: 0.2; }
-  50%  { transform: scale(2); opacity: 1; background: yellow; }
-  100% { transform: scale(1); opacity: 0.2; background: black; }
-}
 
 /* Galería miniaturas */
 .gallery {
@@ -93,7 +77,7 @@ input[type="file"] { display: none; }
   height: 100%;
   object-fit: contain;
   opacity:0;
-  transition: opacity 0.3s ease-in-out; /* transición suave */
+  transition: opacity 0.3s ease-in-out;
 }
 #lightboxOverlay.show img { opacity:1; }
 
@@ -118,7 +102,7 @@ input[type="file"] { display: none; }
 <button id="revealBtn" disabled>Revelar Fotos</button>
 
 <div id="loader">
-  Subiendo <span id="uploadedCount">0</span> / 36 <span class="camera"></span>
+  Subiendo <span id="uploadedCount">0</span> / 36
 </div>
 
 <div id="gallery" class="gallery"></div>
@@ -146,7 +130,6 @@ const fileLabel = document.getElementById("fileLabel");
 const revealBtn = document.getElementById("revealBtn");
 const loader = document.getElementById("loader");
 const uploadedCountSpan = document.getElementById("uploadedCount");
-const cameraDot = document.querySelector(".camera");
 
 const lightboxOverlay = document.getElementById("lightboxOverlay");
 const lightboxImg = lightboxOverlay.querySelector("img");
@@ -158,7 +141,6 @@ let pendingPhotos = [];
 let galleryData = [];
 let currentIndex = 0;
 
-// --- CARGA AUTOMÁTICA DE FOTOS YA SUBIDAS ---
 async function loadGalleryFromSupabase(){
   const { data, error } = await client
     .from("photos_v2")
@@ -174,7 +156,6 @@ async function loadGalleryFromSupabase(){
   updateFileButton();
 }
 
-// Actualiza el grid con miniaturas y menú de acciones
 function updateGalleryGrid() {
   gallery.innerHTML = "";
   
@@ -211,7 +192,6 @@ function updateGalleryGrid() {
   });
 }
 
-// Menú de acciones
 function showActionMenu(index, x, y){
   const menu = document.createElement("div");
   menu.style.position="absolute";
@@ -261,7 +241,6 @@ function showActionMenu(index, x, y){
   document.addEventListener("click", closeMenu);
 }
 
-// Contador y botón
 function updateCounter(){
   counter.innerText = `${galleryData.length + pendingPhotos.length} / ${MAX_PHOTOS} fotos`;
   revealBtn.disabled = pendingPhotos.length !== MAX_PHOTOS;
@@ -275,7 +254,6 @@ function updateFileButton(){
   }
 }
 
-// Agregar fotos
 fileInput.addEventListener("change",()=>{
   const files = Array.from(fileInput.files);
   const spaceLeft = MAX_PHOTOS - (galleryData.length + pendingPhotos.length);
@@ -284,7 +262,6 @@ fileInput.addEventListener("change",()=>{
   fileInput.value = "";
 });
 
-// Subida a Supabase
 async function revealRoll(){
   if(pendingPhotos.length !== MAX_PHOTOS) return;
   loader.style.display = "block"; uploadedCountSpan.innerText = "0";
@@ -301,27 +278,22 @@ async function revealRoll(){
     if(insertError){ console.error("Insert error", insertError); loader.style.display="none"; return; }
 
     uploadedCountSpan.innerText = i+1;
-    cameraDot.classList.remove("flash-photo");
-    void cameraDot.offsetWidth;
-    cameraDot.classList.add("flash-photo");
 
     galleryData.push({ url: publicUrlData.publicUrl });
   }
 
   loader.style.display = "none";
-pendingPhotos = [];
-updateGalleryGrid();
-updateFileButton();
+  pendingPhotos = [];
+  updateGalleryGrid();
+  updateFileButton();
 
-// Cambiar texto y estado del botón
-fileLabel.style.display = "none";       // ocultamos "Elegir fotos"
-revealBtn.innerText = "Rollo Revelado"; // cambia texto
-revealBtn.disabled = true;              // se desactiva
+  fileLabel.style.display = "none";
+  revealBtn.innerText = "Rollo Revelado";
+  revealBtn.disabled = true;
 }
 
 revealBtn.addEventListener("click",revealRoll);
 
-// Lightbox
 function openLightbox(index){
   currentIndex=index;
   const photo = index < galleryData.length 
@@ -358,7 +330,6 @@ prevBtn.addEventListener("click",prevPhoto);
 nextBtn.addEventListener("click",nextPhoto);
 lightboxOverlay.addEventListener("click",(e)=>{ if(e.target===lightboxOverlay) closeLightbox(); });
 
-// Swipe táctil
 let touchStartX = 0;
 lightboxOverlay.addEventListener("touchstart", e => { touchStartX = e.changedTouches[0].screenX; });
 lightboxOverlay.addEventListener("touchend", e => {
@@ -368,7 +339,6 @@ lightboxOverlay.addEventListener("touchend", e => {
   else if(diff < -50) nextPhoto();
 });
 
-// Cargar fotos al iniciar
 loadGalleryFromSupabase();
 </script>
 </body>
