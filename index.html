@@ -17,7 +17,6 @@ body {
 h1 { font-size: 42px; margin-bottom: 8px; }
 #counter { margin-bottom: 16px; font-size: 16px; opacity: 0.8; }
 
-/* Input oculto y label como botón */
 input[type="file"] { display: none; }
 .custom-file-label, #uploadBtn {
   display: inline-block;
@@ -30,7 +29,6 @@ input[type="file"] { display: none; }
   margin-bottom: 12px;
 }
 
-/* Loader tipo cámara */
 #loader { display: none; margin-top: 12px; font-weight:600; }
 .camera {
   display: inline-block;
@@ -49,7 +47,6 @@ input[type="file"] { display: none; }
   100% { transform: scale(1); opacity: 0.2; background: black; }
 }
 
-/* Galería miniaturas */
 .gallery {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
@@ -64,7 +61,6 @@ input[type="file"] { display: none; }
   cursor: pointer;
 }
 
-/* Lightbox / pantalla completa */
 #lightboxOverlay {
   display:none;
   position:fixed;
@@ -126,7 +122,6 @@ const loader = document.getElementById("loader");
 const uploadedCountSpan = document.getElementById("uploadedCount");
 const cameraDot = document.querySelector(".camera");
 
-// Lightbox
 const lightboxOverlay = document.getElementById("lightboxOverlay");
 const lightboxImg = lightboxOverlay.querySelector("img");
 const closeBtn = lightboxOverlay.querySelector(".close");
@@ -154,11 +149,15 @@ async function loadGallery() {
   });
 }
 
-// Subida de fotos con flash por cada foto y añadido inmediato al grid
+// Subida de fotos con flash y añadido inmediato al grid
 async function uploadPhotos(){
   const files = fileInput.files;
   if(!files || files.length===0) return;
 
+  // Antes de subir
+  fileLabel.innerText = "Revelando…";
+  uploadBtn.disabled = true;
+  fileInput.disabled = true;
   loader.style.display="block";
   uploadedCountSpan.innerText = "0";
   let uploadedCount = 0;
@@ -180,7 +179,6 @@ async function uploadPhotos(){
     void cameraDot.offsetWidth;
     cameraDot.classList.add("flash-photo");
 
-    // Añadir la foto al grid inmediatamente
     const img = document.createElement("img");
     img.src = publicUrlData.publicUrl + "?width=150&height=90&fit=crop";
     img.dataset.index = galleryData.length;
@@ -190,15 +188,12 @@ async function uploadPhotos(){
     galleryData.push({ url: publicUrlData.publicUrl });
 
     counter.innerText = `${galleryData.length} / ${MAX_PHOTOS} fotos`;
-
     await new Promise(r => setTimeout(r, 150));
   }
 
+  // Al terminar todas
   loader.style.display="none";
-  fileInput.value="";
   fileLabel.innerText = "Rollo Revelado";
-  fileInput.disabled = true;
-  uploadBtn.disabled = true;
 }
 
 // Botón Revelar Fotos
