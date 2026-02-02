@@ -308,12 +308,15 @@ async function revealRoll(){
     galleryData.push({ url: publicUrlData.publicUrl });
   }
 
-  loader.style.display="none";
-  fileLabel.innerText = "Rollo Revelado";
-  revealBtn.disabled = true;
-  pendingPhotos = [];
-  updateGalleryGrid();
-  updateFileButton();
+  loader.style.display = "none";
+pendingPhotos = [];
+updateGalleryGrid();
+updateFileButton();
+
+// Cambiar texto y estado del botón
+fileLabel.style.display = "none";       // ocultamos "Elegir fotos"
+revealBtn.innerText = "Rollo Revelado"; // cambia texto
+revealBtn.disabled = true;              // se desactiva
 }
 
 revealBtn.addEventListener("click",revealRoll);
