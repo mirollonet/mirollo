@@ -124,7 +124,7 @@ function updateGalleryGrid() {
     img.addEventListener("click", ()=> openLightbox(index));
     itemDiv.appendChild(img);
 
-    if(!photo.url){ // solo acciones para fotos pendientes
+    if(!photo.url){ 
       const actionBtn = document.createElement("div");
       actionBtn.className = "action-btn";
       actionBtn.innerText = "⋮";
@@ -187,9 +187,12 @@ function showActionMenu(index, x, y){
   document.addEventListener("click", closeMenu);
 }
 
+// === ACTUALIZACIÓN DEL CONTADOR Y BOTÓN ===
 function updateCounter(){
-  counter.innerText = `${galleryData.length + pendingPhotos.length} / ${MAX_PHOTOS} fotos`;
-  revealBtn.disabled = pendingPhotos.length !== MAX_PHOTOS;
+  const totalPhotos = galleryData.length + pendingPhotos.length;
+  counter.innerText = `${totalPhotos} / ${MAX_PHOTOS} fotos`;
+
+  revealBtn.disabled = totalPhotos !== MAX_PHOTOS;
 }
 
 function updateFileButton(){
