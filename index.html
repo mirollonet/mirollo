@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Mi Rollo</title>
 
-<!-- Supabase SDK -->
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
@@ -23,7 +22,6 @@ h1{ margin-bottom:4px; }
   display:flex;
   gap:12px;
   margin-bottom:16px;
-  justify-content:flex-start;
 }
 
 button,label{
@@ -139,7 +137,6 @@ input[type=file]{ display:none; }
   Subiendo <span id="uploadedCount">0</span> / 36
 </div>
 
-<!-- Lightbox -->
 <div id="lightbox">
   <div class="close">✕</div>
   <div class="nav prev">‹</div>
@@ -148,40 +145,27 @@ input[type=file]{ display:none; }
 </div>
 
 <script>
-/* =====================================================
-   CONFIG GENERAL
-===================================================== */
+/* ================= CONFIG ================= */
 const MAX_PHOTOS = 36;
 const ROLL_CODE = "TEST002";
 const BUCKET = "photos";
 
-/* =====================================================
-   🔴 SUPABASE – PEGAR TUS DATOS ACÁ 🔴
-   Supabase → Settings → API
-===================================================== */
-
-// ⬇⬇⬇ PEGÁ ACÁ TU Project URL
+/* ================= SUPABASE ================= */
 const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co";
-
-// ⬇⬇⬇ PEGÁ ACÁ TU anon public key
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4";
 
-// ❗ NO USAR service_role ❗
-const supabase = supabase.createClient(
+const supabaseClient = supabase.createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY
 );
 
-/* =====================================================
-   STATE
-===================================================== */
+/* ================= STATE ================= */
 let galleryData = [];
 let pendingPhotos = [];
 let currentIndex = 0;
+let isUploading = false; // 🔒 bloqueo doble clic
 
-/* =====================================================
-   ELEMENTOS
-===================================================== */
+/* ================= ELEMENTOS ================= */
 const counter = document.getElementById("counter");
 const grid = document.getElementById("grid");
 const fileInput = document.getElementById("fileInput");
@@ -189,18 +173,22 @@ const fileLabel = document.getElementById("fileLabel");
 const revealBtn = document.getElementById("revealBtn");
 const loader = document.getElementById("loader");
 const uploadedCountSpan = document.getElementById("uploadedCount");
-
 const lightbox = document.getElementById("lightbox");
 const lightboxImg = document.getElementById("lightboxImg");
 
-/* =====================================================
-   INIT
-===================================================== */
+/* ================= INIT ================= */
 loadFromSupabase();
 
-/* =====================================================
-   UI
-===================================================== */
+/* ================= HELPERS ================= */
+
+// 🔁 Evitar duplicados (nombre + tamaño)
+function isDuplicate(file){
+  return pendingPhotos.some(p =>
+    p.file.name === file.name && p.file.size === file.size
+  );
+}
+
+/* ================= UI ================= */
 function updateCounter(){
   const total = galleryData.length + pendingPhotos.length;
   counter.innerText = `${total} / ${MAX_PHOTOS} fotos`;
@@ -225,41 +213,47 @@ function renderGrid(){
   });
 }
 
-/* =====================================================
-   FILE INPUT
-===================================================== */
+/* ================= FILE INPUT ================= */
 fileInput.addEventListener("change", e=>{
   const files = Array.from(e.target.files);
+
   files.forEach(file=>{
-    if(galleryData.length + pendingPhotos.length < MAX_PHOTOS){
+    if(
+      galleryData.length + pendingPhotos.length < MAX_PHOTOS &&
+      !isDuplicate(file)
+    ){
       pendingPhotos.push({
         file,
         url: URL.createObjectURL(file)
       });
     }
   });
+
   fileInput.value = "";
   renderGrid();
   updateCounter();
 });
 
-/* =====================================================
-   REVELAR ROLLO
-===================================================== */
+/* ================= REVELAR ================= */
 revealBtn.addEventListener("click", revealRoll);
 
 async function revealRoll(){
+  if(isUploading) return; // 🔒 bloquea doble click
+  isUploading = true;
+
   const total = galleryData.length + pendingPhotos.length;
 
-  // Caso: ya completo y sin pendientes
   if(pendingPhotos.length === 0 && total === MAX_PHOTOS){
     revealBtn.innerText = "Rollo Revelado";
     revealBtn.disabled = true;
-    fileLabel.style.visibility = "hidden";
+    isUploading = false;
     return;
   }
 
-  if(pendingPhotos.length === 0) return;
+  if(pendingPhotos.length === 0){
+    isUploading = false;
+    return;
+  }
 
   loader.style.display = "block";
   revealBtn.disabled = true;
@@ -269,10 +263,10 @@ async function revealRoll(){
     const p = pendingPhotos[i];
     const path = `${ROLL_CODE}/${Date.now()}-${p.file.name}`;
 
-    await supabase.storage.from(BUCKET).upload(path, p.file);
-    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    await supabaseClient.storage.from(BUCKET).upload(path, p.file);
+    const { data } = supabaseClient.storage.from(BUCKET).getPublicUrl(path);
 
-    await supabase.from("photos_v2").insert({
+    await supabaseClient.from("photos_v2").insert({
       roll_code: ROLL_CODE,
       url: data.publicUrl
     });
@@ -285,29 +279,26 @@ async function revealRoll(){
   loader.style.display = "none";
   revealBtn.innerText = "Rollo Revelado";
   revealBtn.disabled = true;
-  fileLabel.style.visibility = "hidden";
+  isUploading = false;
+
   renderGrid();
   updateCounter();
 }
 
-/* =====================================================
-   CARGA DESDE SUPABASE
-===================================================== */
+/* ================= LOAD ================= */
 async function loadFromSupabase(){
-  const { data } = await supabase
+  const { data } = await supabaseClient
     .from("photos_v2")
     .select("url")
     .eq("roll_code", ROLL_CODE)
-    .order("id", { ascending: true });
+    .order("id", { ascending:true });
 
   galleryData = Array.isArray(data) ? data : [];
   renderGrid();
   updateCounter();
 }
 
-/* =====================================================
-   LIGHTBOX + SWIPE
-===================================================== */
+/* ================= LIGHTBOX ================= */
 function openLightbox(i){
   currentIndex = i;
   lightboxImg.src = [...galleryData, ...pendingPhotos][i].url;
@@ -328,6 +319,7 @@ function navigate(dir){
   lightboxImg.src = all[currentIndex].url;
 }
 
+/* ================= SWIPE ================= */
 let sx=0, sy=0;
 lightbox.addEventListener("touchstart", e=>{
   sx = e.touches[0].clientX;
