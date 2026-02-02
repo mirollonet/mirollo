@@ -171,13 +171,13 @@ async function loadGalleryFromSupabase(){
   galleryData = data.map(d=>({ url: d.url }));
   updateGalleryGrid();
   updateCounter();
+  updateFileButton();
 }
 
 // Actualiza el grid con miniaturas y menú de acciones
 function updateGalleryGrid() {
   gallery.innerHTML = "";
   
-  // Fotos subidas primero (sin botón de acciones)
   galleryData.forEach((photo,index)=>{
     const itemDiv = document.createElement("div");
     itemDiv.className = "gallery-item";
@@ -189,7 +189,6 @@ function updateGalleryGrid() {
     gallery.appendChild(itemDiv);
   });
 
-  // Fotos pendientes (con botón ⋮)
   pendingPhotos.forEach((photo,index)=>{
     const itemDiv = document.createElement("div");
     itemDiv.className = "gallery-item";
@@ -212,7 +211,7 @@ function updateGalleryGrid() {
   });
 }
 
-// Menú de acciones para fotos pendientes
+// Menú de acciones
 function showActionMenu(index, x, y){
   const menu = document.createElement("div");
   menu.style.position="absolute";
@@ -235,7 +234,7 @@ function showActionMenu(index, x, y){
     input.type="file"; input.accept="image/*";
     input.onchange = ()=> {
       const file = input.files[0];
-      if(file){ pendingPhotos[index] = { file }; updateGalleryGrid(); }
+      if(file){ pendingPhotos[index] = { file }; updateGalleryGrid(); updateCounter(); updateFileButton(); }
     };
     input.click();
     document.body.removeChild(menu);
@@ -244,7 +243,7 @@ function showActionMenu(index, x, y){
   const remove = document.createElement("div");
   remove.innerText="Eliminar"; remove.style.cursor="pointer";
   remove.onclick = ()=>{
-    pendingPhotos.splice(index,1); updateGalleryGrid(); updateCounter();
+    pendingPhotos.splice(index,1); updateGalleryGrid(); updateCounter(); updateFileButton();
     document.body.removeChild(menu);
   };
 
@@ -262,10 +261,18 @@ function showActionMenu(index, x, y){
   document.addEventListener("click", closeMenu);
 }
 
-// Contador y habilitación de botón
+// Contador y botón
 function updateCounter(){
   counter.innerText = `${galleryData.length + pendingPhotos.length} / ${MAX_PHOTOS} fotos`;
   revealBtn.disabled = pendingPhotos.length !== MAX_PHOTOS;
+}
+
+function updateFileButton(){
+  if(galleryData.length + pendingPhotos.length >= MAX_PHOTOS){
+    fileLabel.style.display = "none";
+  } else {
+    fileLabel.style.display = "inline-block";
+  }
 }
 
 // Agregar fotos
@@ -273,7 +280,8 @@ fileInput.addEventListener("change",()=>{
   const files = Array.from(fileInput.files);
   const spaceLeft = MAX_PHOTOS - (galleryData.length + pendingPhotos.length);
   files.slice(0,spaceLeft).forEach(file=>{ pendingPhotos.push({ file }); });
-  updateGalleryGrid(); updateCounter(); fileInput.value = "";
+  updateGalleryGrid(); updateCounter(); updateFileButton();
+  fileInput.value = "";
 });
 
 // Subida a Supabase
@@ -305,6 +313,7 @@ async function revealRoll(){
   revealBtn.disabled = true;
   pendingPhotos = [];
   updateGalleryGrid();
+  updateFileButton();
 }
 
 revealBtn.addEventListener("click",revealRoll);
@@ -312,12 +321,22 @@ revealBtn.addEventListener("click",revealRoll);
 // Lightbox
 function openLightbox(index){
   currentIndex=index;
-  lightboxImg.style.opacity = 0; // iniciar transición
-  if(index < galleryData.length) lightboxImg.src = galleryData[index].url;
-  else lightboxImg.src = URL.createObjectURL(pendingPhotos[index - galleryData.length].file);
+  const photo = index < galleryData.length 
+      ? galleryData[index] 
+      : pendingPhotos[index - galleryData.length];
+
+  if(!photo) return;
+
+  if(photo.url) lightboxImg.src = photo.url;
+  else if(photo.file) lightboxImg.src = URL.createObjectURL(photo.file);
+
+  lightboxImg.style.opacity = 0;
   lightboxOverlay.style.display="flex";
   setTimeout(()=> lightboxOverlay.classList.add("show"), 10);
+
+  lightboxImg.onload = () => { lightboxImg.style.opacity = 1; };
 }
+
 function closeLightbox(){ 
   lightboxOverlay.classList.remove("show");
   setTimeout(()=> lightboxOverlay.style.display="none", 300);
@@ -346,7 +365,7 @@ lightboxOverlay.addEventListener("touchend", e => {
   else if(diff < -50) nextPhoto();
 });
 
-// Cargar fotos ya subidas al iniciar
+// Cargar fotos al iniciar
 loadGalleryFromSupabase();
 </script>
 </body>
