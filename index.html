@@ -133,7 +133,7 @@ const nextBtn = lightboxOverlay.querySelector(".next");
 let galleryData = [];
 let currentIndex = 0;
 
-// Cargar galería
+// Cargar galería inicial
 async function loadGallery() {
   gallery.innerHTML = "";
   const { data, error } = await client.from("photos_v2").select("url").eq("roll_code", ROLL_CODE);
@@ -151,7 +151,7 @@ async function loadGallery() {
   });
 }
 
-// Subida de fotos con flash tipo cámara
+// Subida de fotos con flash por cada foto y añadido inmediato al grid
 async function uploadPhotos(files){
   if(!files || files.length===0) return;
 
@@ -172,31 +172,42 @@ async function uploadPhotos(files){
     uploadedCount++;
     uploadedCountSpan.innerText = uploadedCount;
 
+    // Flash tipo cámara
     cameraDot.classList.remove("flash-photo");
     void cameraDot.offsetWidth;
     cameraDot.classList.add("flash-photo");
 
-    await new Promise(r => setTimeout(r, 150));
+    // Añadir la foto al grid inmediatamente
+    const img = document.createElement("img");
+    img.src = publicUrlData.publicUrl + "?width=150&height=90&fit=crop";
+    img.dataset.index = galleryData.length;
+    img.addEventListener("click",()=>openLightbox(galleryData.length));
+    gallery.appendChild(img);
+
+    galleryData.push({ url: publicUrlData.publicUrl });
+
+    counter.innerText = `${galleryData.length} / ${MAX_PHOTOS} fotos`;
+
+    await new Promise(r => setTimeout(r, 150)); // delay para el flash
   }
 
   loader.style.display="none";
   fileInput.value="";
   fileLabel.innerText = "Rollo Revelado";
   fileInput.disabled = true;
-  loadGallery();
 }
 
-// Listener para cambios en selección de archivos
+// Listener para cambios en el input
 fileInput.addEventListener("change", () => {
-  if(fileInput.files.length===MAX_PHOTOS){
+  if(fileInput.files.length === MAX_PHOTOS){
     fileLabel.innerText = "Revelar Fotos";
   }
 });
 
-// Listener click en label para disparar subida
+// Listener click en label
 fileLabel.addEventListener("click", async () => {
   const files = fileInput.files;
-  if(!files || files.length===0) return;
+  if(!files || files.length === 0) return;
 
   if(fileLabel.innerText === "Revelar Fotos"){
     fileLabel.innerText = "Revelando…";
