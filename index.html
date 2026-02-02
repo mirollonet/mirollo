@@ -90,7 +90,6 @@ input[type="file"] { display: none; }
 <h1>Mi Rollo</h1>
 <div id="counter">0 / 36 fotos</div>
 
-<!-- Input oculto y label único -->
 <input type="file" id="fileInput" multiple accept="image/*" />
 <label for="fileInput" class="custom-file-label" id="fileLabel">Elegir fotos</label>
 
@@ -100,7 +99,6 @@ input[type="file"] { display: none; }
 
 <div id="gallery" class="gallery"></div>
 
-<!-- Lightbox -->
 <div id="lightboxOverlay">
   <span class="close">&times;</span>
   <span class="prev">&#10094;</span>
@@ -153,8 +151,10 @@ async function loadGallery() {
   });
 }
 
-// Subida de fotos con flash tipo cámara por cada foto
+// Subida de fotos con flash tipo cámara
 async function uploadPhotos(files){
+  if(!files || files.length===0) return;
+
   loader.style.display="block";
   uploadedCountSpan.innerText = "0";
   let uploadedCount = 0;
@@ -169,16 +169,14 @@ async function uploadPhotos(files){
     const {error: insertError} = await client.from("photos_v2").insert({ roll_code:ROLL_CODE, url:publicUrlData.publicUrl });
     if(insertError){ console.error("Insert error", insertError); loader.style.display="none"; return; }
 
-    // Incrementar contador
     uploadedCount++;
     uploadedCountSpan.innerText = uploadedCount;
 
-    // Animación flash por foto
     cameraDot.classList.remove("flash-photo");
-    void cameraDot.offsetWidth; // trigger reflow
+    void cameraDot.offsetWidth;
     cameraDot.classList.add("flash-photo");
 
-    await new Promise(r => setTimeout(r, 150)); // pequeño delay para que se vea el flash
+    await new Promise(r => setTimeout(r, 150));
   }
 
   loader.style.display="none";
@@ -188,14 +186,17 @@ async function uploadPhotos(files){
   loadGallery();
 }
 
-// Listener cambio selección archivos (dispara subida automáticamente)
-fileInput.addEventListener("change", async () => {
-  const files = fileInput.files;
-  if(files.length === 0) return;
-
-  if(files.length === MAX_PHOTOS){
+// Listener para cambios en selección de archivos
+fileInput.addEventListener("change", () => {
+  if(fileInput.files.length===MAX_PHOTOS){
     fileLabel.innerText = "Revelar Fotos";
   }
+});
+
+// Listener click en label para disparar subida
+fileLabel.addEventListener("click", async () => {
+  const files = fileInput.files;
+  if(!files || files.length===0) return;
 
   if(fileLabel.innerText === "Revelar Fotos"){
     fileLabel.innerText = "Revelando…";
