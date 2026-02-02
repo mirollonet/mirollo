@@ -13,12 +13,11 @@ body {
   text-align: center;
   padding: 6vh 16px;
 }
-
 h1 { font-size: 42px; margin-bottom: 8px; }
 #counter { margin-bottom: 16px; font-size: 16px; opacity: 0.8; }
 
 input[type="file"] { display: none; }
-.custom-file-label, #uploadBtn {
+.custom-file-label, #revealBtn {
   display: inline-block;
   padding: 14px 30px;
   font-size: 18px;
@@ -29,6 +28,7 @@ input[type="file"] { display: none; }
   margin-bottom: 12px;
 }
 
+/* Loader tipo cámara */
 #loader { display: none; margin-top: 12px; font-weight:600; }
 .camera {
   display: inline-block;
@@ -47,6 +47,7 @@ input[type="file"] { display: none; }
   100% { transform: scale(1); opacity: 0.2; background: black; }
 }
 
+/* Galería miniaturas */
 .gallery {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
@@ -61,6 +62,7 @@ input[type="file"] { display: none; }
   cursor: pointer;
 }
 
+/* Lightbox */
 #lightboxOverlay {
   display:none;
   position:fixed;
@@ -89,7 +91,7 @@ input[type="file"] { display: none; }
 <input type="file" id="fileInput" multiple accept="image/*" />
 <label for="fileInput" class="custom-file-label" id="fileLabel">Elegir fotos</label>
 <br/>
-<button id="uploadBtn">Revelar Fotos</button>
+<button id="revealBtn" disabled>Revelar Fotos</button>
 
 <div id="loader">
   Subiendo <span id="uploadedCount">0</span> / 36 <span class="camera"></span>
@@ -107,7 +109,7 @@ input[type="file"] { display: none; }
 <script>
 const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4";
-const ROLL_CODE = "TEST002";
+const ROLL_CODE = "TEST004";
 const MAX_PHOTOS = 36;
 const BUCKET = "mirollo";
 
@@ -117,7 +119,7 @@ const counter = document.getElementById("counter");
 const gallery = document.getElementById("gallery");
 const fileInput = document.getElementById("fileInput");
 const fileLabel = document.getElementById("fileLabel");
-const uploadBtn = document.getElementById("uploadBtn");
+const revealBtn = document.getElementById("revealBtn");
 const loader = document.getElementById("loader");
 const uploadedCountSpan = document.getElementById("uploadedCount");
 const cameraDot = document.querySelector(".camera");
@@ -128,90 +130,174 @@ const closeBtn = lightboxOverlay.querySelector(".close");
 const prevBtn = lightboxOverlay.querySelector(".prev");
 const nextBtn = lightboxOverlay.querySelector(".next");
 
+let pendingPhotos = []; // fotos locales antes de subir
 let galleryData = [];
 let currentIndex = 0;
 
-// Cargar galería inicial
-async function loadGallery() {
+// Actualiza el grid con miniaturas locales y menú de acciones
+function updateGalleryGrid() {
   gallery.innerHTML = "";
-  const { data, error } = await client.from("photos_v2").select("url").eq("roll_code", ROLL_CODE);
-  if(error){ console.error("Load error", error); counter.innerText="Error al cargar fotos"; return; }
-
-  galleryData = data;
-  counter.innerText = `${data.length} / ${MAX_PHOTOS} fotos`;
-
-  data.forEach((photo,index)=>{
+  pendingPhotos.forEach((photo,index)=>{
     const img = document.createElement("img");
-    img.src = photo.url + "?width=150&height=90&fit=crop";
+    img.src = URL.createObjectURL(photo.file);
     img.dataset.index = index;
-    img.addEventListener("click",()=>openLightbox(index));
+
+    img.addEventListener("click", (e)=>{
+      e.preventDefault();
+      openLightbox(index);
+    });
+
+    img.addEventListener("contextmenu", (e)=>{
+      e.preventDefault();
+      // Menú flotante simple
+      const menu = document.createElement("div");
+      menu.style.position="absolute";
+      menu.style.background="white";
+      menu.style.border="1px solid black";
+      menu.style.padding="4px";
+      menu.style.zIndex=10000;
+
+      const view = document.createElement("div");
+      view.innerText="Ver grande";
+      view.style.cursor="pointer";
+      view.onclick = ()=>{
+        openLightbox(index);
+        document.body.removeChild(menu);
+      };
+
+      const replace = document.createElement("div");
+      replace.innerText="Reemplazar";
+      replace.style.cursor="pointer";
+      replace.onclick = ()=>{
+        const input = document.createElement("input");
+        input.type="file";
+        input.accept="image/*";
+        input.onchange = ()=> {
+          const file = input.files[0];
+          if(file){
+            pendingPhotos[index] = { file };
+            updateGalleryGrid();
+          }
+        };
+        input.click();
+        document.body.removeChild(menu);
+      };
+
+      const remove = document.createElement("div");
+      remove.innerText="Eliminar";
+      remove.style.cursor="pointer";
+      remove.onclick = ()=>{
+        pendingPhotos.splice(index,1);
+        updateGalleryGrid();
+        updateCounter();
+        document.body.removeChild(menu);
+      };
+
+      menu.appendChild(view);
+      menu.appendChild(replace);
+      menu.appendChild(remove);
+
+      menu.style.top = e.pageY + "px";
+      menu.style.left = e.pageX + "px";
+      document.body.appendChild(menu);
+
+      // Cerrar al hacer click afuera
+      const closeMenu = (ev)=>{
+        if(!menu.contains(ev.target)){
+          document.body.removeChild(menu);
+          document.removeEventListener("click", closeMenu);
+        }
+      };
+      document.addEventListener("click", closeMenu);
+    });
+
     gallery.appendChild(img);
   });
 }
 
-// Subida de fotos con flash y añadido inmediato al grid
-async function uploadPhotos(){
-  const files = fileInput.files;
-  if(!files || files.length===0) return;
+// Actualiza contador y botón revelar
+function updateCounter(){
+  counter.innerText = `${pendingPhotos.length} / ${MAX_PHOTOS} fotos`;
+  revealBtn.disabled = pendingPhotos.length !== MAX_PHOTOS;
+}
 
-  // Antes de subir
-  fileLabel.innerText = "Revelando…";
-  uploadBtn.disabled = true;
-  fileInput.disabled = true;
-  loader.style.display="block";
+// Agregar fotos seleccionadas al array local
+fileInput.addEventListener("change",()=>{
+  const files = Array.from(fileInput.files);
+  const spaceLeft = MAX_PHOTOS - pendingPhotos.length;
+  files.slice(0,spaceLeft).forEach(file=>{
+    pendingPhotos.push({ file });
+  });
+  updateGalleryGrid();
+  updateCounter();
+  fileInput.value = "";
+});
+
+// Subida final a Supabase
+async function revealRoll(){
+  if(pendingPhotos.length !== MAX_PHOTOS) return;
+
+  loader.style.display = "block";
   uploadedCountSpan.innerText = "0";
-  let uploadedCount = 0;
+  revealBtn.disabled = true;
 
-  for(const file of files){
-    const filePath = `${ROLL_CODE}/${Date.now()}-${file.name}`;
+  for(let i=0;i<pendingPhotos.length;i++){
+    const photo = pendingPhotos[i];
+    const filePath = `${ROLL_CODE}/${Date.now()}-${photo.file.name}`;
 
-    const {error: uploadError} = await client.storage.from(BUCKET).upload(filePath,file);
+    const {error: uploadError} = await client.storage.from(BUCKET).upload(filePath,photo.file);
     if(uploadError){ console.error("Upload error", uploadError); loader.style.display="none"; return; }
 
     const {data: publicUrlData} = client.storage.from(BUCKET).getPublicUrl(filePath);
     const {error: insertError} = await client.from("photos_v2").insert({ roll_code:ROLL_CODE, url:publicUrlData.publicUrl });
     if(insertError){ console.error("Insert error", insertError); loader.style.display="none"; return; }
 
-    uploadedCount++;
-    uploadedCountSpan.innerText = uploadedCount;
+    uploadedCountSpan.innerText = i+1;
 
     cameraDot.classList.remove("flash-photo");
     void cameraDot.offsetWidth;
     cameraDot.classList.add("flash-photo");
 
-    const img = document.createElement("img");
-    img.src = publicUrlData.publicUrl + "?width=150&height=90&fit=crop";
-    img.dataset.index = galleryData.length;
-    img.addEventListener("click",()=>openLightbox(galleryData.length));
-    gallery.appendChild(img);
-
     galleryData.push({ url: publicUrlData.publicUrl });
-
-    counter.innerText = `${galleryData.length} / ${MAX_PHOTOS} fotos`;
-    await new Promise(r => setTimeout(r, 150));
   }
 
-  // Al terminar todas
   loader.style.display="none";
   fileLabel.innerText = "Rollo Revelado";
+  revealBtn.disabled = true;
+  pendingPhotos = [];
 }
 
-// Botón Revelar Fotos
-uploadBtn.addEventListener("click", uploadPhotos);
+// Botón revelar
+revealBtn.addEventListener("click",revealRoll);
 
 // Lightbox
-function openLightbox(index){ currentIndex=index; lightboxImg.src = galleryData[index].url; lightboxOverlay.style.display="flex"; }
+function openLightbox(index){
+  if(index < galleryData.length){
+    currentIndex=index;
+    lightboxImg.src = galleryData[index].url;
+    lightboxOverlay.style.display="flex";
+  } else if(index < pendingPhotos.length){
+    // mostrar URL temporal
+    currentIndex=index;
+    lightboxImg.src = URL.createObjectURL(pendingPhotos[index].file);
+    lightboxOverlay.style.display="flex";
+  }
+}
 function closeLightbox(){ lightboxOverlay.style.display="none"; }
-function prevPhoto(){ currentIndex=(currentIndex-1+galleryData.length)%galleryData.length; lightboxImg.src=galleryData[currentIndex].url; }
-function nextPhoto(){ currentIndex=(currentIndex+1)%galleryData.length; lightboxImg.src=galleryData[currentIndex].url; }
+function prevPhoto(){ 
+  currentIndex=(currentIndex-1+(galleryData.length+pendingPhotos.length))%(galleryData.length+pendingPhotos.length); 
+  openLightbox(currentIndex); 
+}
+function nextPhoto(){ 
+  currentIndex=(currentIndex+1)%(galleryData.length+pendingPhotos.length); 
+  openLightbox(currentIndex); 
+}
 
 closeBtn.addEventListener("click",closeLightbox);
 prevBtn.addEventListener("click",prevPhoto);
 nextBtn.addEventListener("click",nextPhoto);
 lightboxOverlay.addEventListener("click",(e)=>{ if(e.target===lightboxOverlay) closeLightbox(); });
 
-loadGallery();
 </script>
-
 </body>
 </html>
