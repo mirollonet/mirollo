@@ -26,9 +26,7 @@
     }
 
     /* Input oculto y label estilo botón */
-    input[type="file"] {
-      display: none;
-    }
+    input[type="file"] { display: none; }
 
     .custom-file-label {
       display: inline-block;
@@ -50,10 +48,7 @@
       cursor: pointer;
     }
 
-    button:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
 
     /* --- Gallery --- */
     .gallery {
@@ -68,29 +63,33 @@
       height: 90px;
       object-fit: cover;
       border-radius: 6px;
+      cursor: pointer;
     }
 
     /* Loader tipo cámara */
-    #loader {
-      display: none;
-      margin-top: 12px;
-      font-weight: 600;
-    }
+    #loader { display: none; margin-top: 12px; font-weight:600; }
+    .camera { display: inline-block; width:12px; height:12px; margin-left:6px; background:black; border-radius:50%; animation: flash 1s infinite; }
+    @keyframes flash { 0%,70%,100%{transform:scale(1);opacity:0.2;} 35%{transform:scale(1.5);opacity:1;} }
 
-    .camera {
-      display: inline-block;
-      width: 12px;
-      height: 12px;
-      margin-left: 6px;
-      background: black;
-      border-radius: 50%;
-      animation: flash 1s infinite;
+    /* --- Lightbox --- */
+    #lightboxOverlay {
+      display:none;
+      position:fixed;
+      top:0; left:0; width:100%; height:100%;
+      background: rgba(0,0,0,0.9);
+      justify-content:center;
+      align-items:center;
+      z-index: 9999;
     }
-
-    @keyframes flash {
-      0%, 70%, 100% { transform: scale(1); opacity: 0.2; }
-      35% { transform: scale(1.5); opacity: 1; }
+    #lightboxOverlay img { max-width:90%; max-height:90%; }
+    #lightboxOverlay .close, #lightboxOverlay .prev, #lightboxOverlay .next {
+      position:absolute; top:50%; transform:translateY(-50%);
+      color:white; font-size:32px; font-weight:bold; cursor:pointer;
+      user-select:none; padding:10px;
     }
+    #lightboxOverlay .close { top:10%; right:5%; transform:none; font-size:28px; }
+    #lightboxOverlay .prev { left:5%; }
+    #lightboxOverlay .next { right:5%; }
   </style>
 </head>
 <body>
@@ -99,8 +98,8 @@
 <div id="counter">0 / 36 fotos</div>
 
 <!-- Input oculto y label como botón -->
-<label for="fileInput" class="custom-file-label" id="fileLabel">Elegir fotos</label>
 <input type="file" id="fileInput" multiple accept="image/*" />
+<label for="fileInput" class="custom-file-label" id="fileLabel">Elegir fotos</label>
 
 <button id="uploadBtn">Revelar Fotos</button>
 
@@ -108,11 +107,17 @@
   Subiendo <span id="uploadedCount">0</span> / 36 <span class="camera"></span>
 </div>
 
-<div id="fullMessage" style="display:none; margin-top:12px; font-weight:600;">
-  Rollo revelado
-</div>
+<div id="fullMessage" style="display:none; margin-top:12px; font-weight:600;">Rollo revelado</div>
 
 <div id="gallery" class="gallery"></div>
+
+<!-- Lightbox -->
+<div id="lightboxOverlay">
+  <span class="close">&times;</span>
+  <span class="prev">&#10094;</span>
+  <span class="next">&#10095;</span>
+  <img src="">
+</div>
 
 <script>
   const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co";
@@ -132,105 +137,97 @@
   const loader = document.getElementById("loader");
   const uploadedCountSpan = document.getElementById("uploadedCount");
 
+  // Lightbox elements
+  const lightboxOverlay = document.getElementById("lightboxOverlay");
+  const lightboxImg = lightboxOverlay.querySelector("img");
+  const closeBtn = lightboxOverlay.querySelector(".close");
+  const prevBtn = lightboxOverlay.querySelector(".prev");
+  const nextBtn = lightboxOverlay.querySelector(".next");
+
+  let galleryData = [];
+  let currentIndex = 0;
+
   async function loadGallery() {
     gallery.innerHTML = "";
     const { data, error } = await client.from("photos_v2").select("url").eq("roll_code", ROLL_CODE);
 
-    if (error) {
-      console.error("Load error", error);
-      counter.innerText = "Error al cargar las fotos";
-      return;
-    }
+    if(error){ console.error("Load error", error); counter.innerText="Error al cargar fotos"; return; }
 
+    galleryData = data;
     counter.innerText = `${data.length} / ${MAX_PHOTOS} fotos`;
 
-    data.forEach(photo => {
-      const img = document.createElement("img");
-      // Mostrar miniatura comprimida
-      const thumbUrl = photo.url + "?width=150&height=90&fit=crop";
-      img.src = thumbUrl;
+    data.forEach((photo,index)=>{
+      const img=document.createElement("img");
+      img.src = photo.url + "?width=150&height=90&fit=crop"; // miniatura
+      img.dataset.index = index;
+      img.addEventListener("click",()=>openLightbox(index));
       gallery.appendChild(img);
     });
 
     const remainingSlots = MAX_PHOTOS - data.length;
     if (remainingSlots > 0) {
-      fileLabel.innerText = `Elegir hasta ${remainingSlots} foto${remainingSlots > 1 ? "s" : ""}`;
+      fileLabel.innerText = `Elegir hasta ${remainingSlots} foto${remainingSlots>1?"s":""}`;
     } else {
       fileLabel.innerText = "Rollo completado";
     }
 
-    if (data.length >= MAX_PHOTOS) {
-      uploadBtn.innerText = "Rollo Revelado";
-      uploadBtn.disabled = true;
-      fileInput.style.display = "none";
-      fullMessage.style.display = "block";
+    if(data.length>=MAX_PHOTOS){
+      uploadBtn.innerText="Rollo Revelado"; uploadBtn.disabled=true;
+      fileInput.style.display="none"; fullMessage.style.display="block";
     } else {
-      uploadBtn.innerText = "Revelar Fotos";
-      uploadBtn.disabled = false;
-      fileInput.style.display = "inline-block";
-      fullMessage.style.display = "none";
+      uploadBtn.innerText="Revelar Fotos"; uploadBtn.disabled=false;
+      fileInput.style.display="inline-block"; fullMessage.style.display="none";
     }
   }
 
-  async function uploadPhotos() {
-    uploadBtn.disabled = true;
-
-    const { data: existingPhotos } = await client.from("photos_v2").select("id").eq("roll_code", ROLL_CODE);
+  async function uploadPhotos(){
+    uploadBtn.disabled=true;
+    const {data: existingPhotos} = await client.from("photos_v2").select("id").eq("roll_code",ROLL_CODE);
     const existingCount = existingPhotos.length;
     const remainingSlots = MAX_PHOTOS - existingCount;
 
     let files = Array.from(fileInput.files);
-    if (!files.length) {
-      uploadBtn.disabled = false;
-      return;
-    }
+    if(!files.length){ uploadBtn.disabled=false; return; }
+    if(files.length>remainingSlots){ files=files.slice(0,remainingSlots); alert(`Solo se pueden subir ${remainingSlots} fotos más.`); }
 
-    if (files.length > remainingSlots) {
-      files = files.slice(0, remainingSlots);
-      alert(`Solo se pueden subir ${remainingSlots} fotos más. Se subirán las primeras seleccionadas.`);
-    }
+    loader.style.display="block"; uploadedCountSpan.innerText="0";
+    let uploadedCount=0;
 
-    loader.style.display = "block";
-    uploadedCountSpan.innerText = "0";
-
-    let uploadedCount = 0;
-
-    for (const file of files) {
+    for(const file of files){
       const filePath = `${ROLL_CODE}/${Date.now()}-${file.name}`;
+      const {error: uploadError} = await client.storage.from(BUCKET).upload(filePath,file);
+      if(uploadError){ console.error("Upload error", uploadError); loader.style.display="none"; uploadBtn.disabled=false; return; }
 
-      const { error: uploadError } = await client.storage.from(BUCKET).upload(filePath, file);
-      if (uploadError) {
-        console.error("Upload error", uploadError);
-        loader.style.display = "none";
-        uploadBtn.disabled = false;
-        return;
-      }
+      const {data: publicUrlData} = client.storage.from(BUCKET).getPublicUrl(filePath);
 
-      const { data: publicUrlData } = client.storage.from(BUCKET).getPublicUrl(filePath);
-
-      const { error: insertError } = await client.from("photos_v2").insert({
-        roll_code: ROLL_CODE,
-        url: publicUrlData.publicUrl
-      });
-
-      if (insertError) {
-        console.error("Insert error", insertError);
-        loader.style.display = "none";
-        uploadBtn.disabled = false;
-        return;
-      }
+      const {error: insertError} = await client.from("photos_v2").insert({ roll_code:ROLL_CODE, url:publicUrlData.publicUrl });
+      if(insertError){ console.error("Insert error", insertError); loader.style.display="none"; uploadBtn.disabled=false; return; }
 
       uploadedCount++;
-      uploadedCountSpan.innerText = uploadedCount + existingCount;
+      uploadedCountSpan.innerText = uploadedCount+existingCount;
     }
 
-    fileInput.value = "";
-    loader.style.display = "none";
-    uploadBtn.disabled = false;
+    fileInput.value=""; loader.style.display="none"; uploadBtn.disabled=false;
     loadGallery();
   }
 
-  uploadBtn.addEventListener("click", uploadPhotos);
+  // Lightbox functions
+  function openLightbox(index){
+    currentIndex=index;
+    lightboxImg.src = galleryData[index].url;
+    lightboxOverlay.style.display="flex";
+  }
+
+  function closeLightbox(){ lightboxOverlay.style.display="none"; }
+  function prevPhoto(){ currentIndex=(currentIndex-1+galleryData.length)%galleryData.length; lightboxImg.src=galleryData[currentIndex].url; }
+  function nextPhoto(){ currentIndex=(currentIndex+1)%galleryData.length; lightboxImg.src=galleryData[currentIndex].url; }
+
+  closeBtn.addEventListener("click",closeLightbox);
+  prevBtn.addEventListener("click",prevPhoto);
+  nextBtn.addEventListener("click",nextPhoto);
+  lightboxOverlay.addEventListener("click",(e)=>{ if(e.target===lightboxOverlay) closeLightbox(); });
+
+  uploadBtn.addEventListener("click",uploadPhotos);
   loadGallery();
 </script>
 
