@@ -1,113 +1,100 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mi Rollo</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mi Rollo</title>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      text-align: center;
-      padding: 6vh 16px;
-    }
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  text-align: center;
+  padding: 6vh 16px;
+}
 
-    h1 {
-      font-size: 42px;
-      margin-bottom: 8px;
-    }
+h1 {
+  font-size: 42px;
+  margin-bottom: 8px;
+}
 
-    #counter {
-      margin-bottom: 16px;
-      font-size: 16px;
-      opacity: 0.8;
-    }
+#counter {
+  margin-bottom: 16px;
+  font-size: 16px;
+  opacity: 0.8;
+}
 
-    /* Input oculto y label estilo botón */
-    input[type="file"] { display: none; }
+/* Input oculto y label como botón */
+input[type="file"] { display: none; }
+.custom-file-label {
+  display: inline-block;
+  padding: 14px 30px;
+  font-size: 18px;
+  border-radius: 12px;
+  border: 1px solid black;
+  background: white;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
 
-    .custom-file-label {
-      display: inline-block;
-      padding: 14px 30px;
-      font-size: 18px;
-      border-radius: 12px;
-      border: 1px solid black;
-      background: white;
-      cursor: pointer;
-      margin-bottom: 12px;
-    }
+/* Loader tipo cámara */
+#loader { display: none; margin-top: 12px; font-weight:600; }
+.camera { display: inline-block; width:12px; height:12px; margin-left:6px; background:black; border-radius:50%; animation: flash 1s infinite; }
+@keyframes flash { 0%,70%,100%{transform:scale(1);opacity:0.2;} 35%{transform:scale(1.5);opacity:1;} }
 
-    button {
-      padding: 14px 30px;
-      font-size: 18px;
-      border-radius: 12px;
-      border: 1px solid black;
-      background: white;
-      cursor: pointer;
-    }
+/* Galería miniaturas */
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 10px;
+  margin-top: 20px;
+}
+.gallery img {
+  width: 100%;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 6px;
+  cursor: pointer;
+}
 
-    button:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    /* --- Gallery --- */
-    .gallery {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-      gap: 10px;
-      margin-top: 20px;
-    }
-
-    .gallery img {
-      width: 100%;
-      height: 90px;
-      object-fit: cover;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-
-    /* Loader tipo cámara */
-    #loader { display: none; margin-top: 12px; font-weight:600; }
-    .camera { display: inline-block; width:12px; height:12px; margin-left:6px; background:black; border-radius:50%; animation: flash 1s infinite; }
-    @keyframes flash { 0%,70%,100%{transform:scale(1);opacity:0.2;} 35%{transform:scale(1.5);opacity:1;} }
-
-    /* --- Lightbox --- */
-    #lightboxOverlay {
-      display:none;
-      position:fixed;
-      top:0; left:0; width:100%; height:100%;
-      background: rgba(0,0,0,0.9);
-      justify-content:center;
-      align-items:center;
-      z-index: 9999;
-    }
-    #lightboxOverlay img { max-width:90%; max-height:90%; }
-    #lightboxOverlay .close, #lightboxOverlay .prev, #lightboxOverlay .next {
-      position:absolute; top:50%; transform:translateY(-50%);
-      color:white; font-size:32px; font-weight:bold; cursor:pointer;
-      user-select:none; padding:10px;
-    }
-    #lightboxOverlay .close { top:10%; right:5%; transform:none; font-size:28px; }
-    #lightboxOverlay .prev { left:5%; }
-    #lightboxOverlay .next { right:5%; }
-  </style>
+/* Lightbox / pantalla completa */
+#lightboxOverlay {
+  display:none;
+  position:fixed;
+  top:0; left:0; width:100%; height:100%;
+  background: rgba(0,0,0,0.9);
+  justify-content:center;
+  align-items:center;
+  z-index: 9999;
+}
+#lightboxOverlay img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+#lightboxOverlay .close, #lightboxOverlay .prev, #lightboxOverlay .next {
+  position:absolute;
+  color:white; font-size:32px; font-weight:bold; cursor:pointer;
+  user-select:none; padding:10px;
+}
+#lightboxOverlay .close { top:10%; right:5%; font-size:28px; }
+#lightboxOverlay .prev { left:5%; top:50%; transform:translateY(-50%);}
+#lightboxOverlay .next { right:5%; top:50%; transform:translateY(-50%);}
+</style>
 </head>
 <body>
 
 <h1>Mi Rollo</h1>
 <div id="counter">0 / 36 fotos</div>
 
-<!-- Input oculto y label como botón -->
+<!-- Input oculto y label como botón único -->
 <input type="file" id="fileInput" multiple accept="image/*" />
 <label for="fileInput" class="custom-file-label" id="fileLabel">Elegir fotos</label>
-
-<button id="uploadBtn">Revelar Fotos</button>
 
 <div id="loader">
   Subiendo <span id="uploadedCount">0</span> / 36 <span class="camera"></span>
 </div>
-
-<div id="fullMessage" style="display:none; margin-top:12px; font-weight:600;">Rollo revelado</div>
 
 <div id="gallery" class="gallery"></div>
 
@@ -120,115 +107,114 @@
 </div>
 
 <script>
-  const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4";
-  const ROLL_CODE = "TEST002";
-  const MAX_PHOTOS = 36;
-  const BUCKET = "mirollo";
+const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4";
+const ROLL_CODE = "TEST002";
+const MAX_PHOTOS = 36;
+const BUCKET = "mirollo";
 
-  const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  const counter = document.getElementById("counter");
-  const gallery = document.getElementById("gallery");
-  const uploadBtn = document.getElementById("uploadBtn");
-  const fileInput = document.getElementById("fileInput");
-  const fullMessage = document.getElementById("fullMessage");
-  const fileLabel = document.getElementById("fileLabel");
-  const loader = document.getElementById("loader");
-  const uploadedCountSpan = document.getElementById("uploadedCount");
+const counter = document.getElementById("counter");
+const gallery = document.getElementById("gallery");
+const fileInput = document.getElementById("fileInput");
+const fileLabel = document.getElementById("fileLabel");
+const loader = document.getElementById("loader");
+const uploadedCountSpan = document.getElementById("uploadedCount");
 
-  // Lightbox elements
-  const lightboxOverlay = document.getElementById("lightboxOverlay");
-  const lightboxImg = lightboxOverlay.querySelector("img");
-  const closeBtn = lightboxOverlay.querySelector(".close");
-  const prevBtn = lightboxOverlay.querySelector(".prev");
-  const nextBtn = lightboxOverlay.querySelector(".next");
+// Lightbox
+const lightboxOverlay = document.getElementById("lightboxOverlay");
+const lightboxImg = lightboxOverlay.querySelector("img");
+const closeBtn = lightboxOverlay.querySelector(".close");
+const prevBtn = lightboxOverlay.querySelector(".prev");
+const nextBtn = lightboxOverlay.querySelector(".next");
 
-  let galleryData = [];
-  let currentIndex = 0;
+let galleryData = [];
+let currentIndex = 0;
 
-  async function loadGallery() {
-    gallery.innerHTML = "";
-    const { data, error } = await client.from("photos_v2").select("url").eq("roll_code", ROLL_CODE);
+// Cargar galería
+async function loadGallery() {
+  gallery.innerHTML = "";
+  const { data, error } = await client.from("photos_v2").select("url").eq("roll_code", ROLL_CODE);
+  if(error){ console.error("Load error", error); counter.innerText="Error al cargar fotos"; return; }
 
-    if(error){ console.error("Load error", error); counter.innerText="Error al cargar fotos"; return; }
+  galleryData = data;
+  counter.innerText = `${data.length} / ${MAX_PHOTOS} fotos`;
 
-    galleryData = data;
-    counter.innerText = `${data.length} / ${MAX_PHOTOS} fotos`;
+  data.forEach((photo,index)=>{
+    const img = document.createElement("img");
+    img.src = photo.url + "?width=150&height=90&fit=crop";
+    img.dataset.index = index;
+    img.addEventListener("click",()=>openLightbox(index));
+    gallery.appendChild(img);
+  });
 
-    data.forEach((photo,index)=>{
-      const img=document.createElement("img");
-      img.src = photo.url + "?width=150&height=90&fit=crop"; // miniatura
-      img.dataset.index = index;
-      img.addEventListener("click",()=>openLightbox(index));
-      gallery.appendChild(img);
-    });
+  const remaining = MAX_PHOTOS - data.length;
+  if(remaining > 0){
+    fileLabel.innerText = `Elegir fotos`;
+    fileInput.disabled = false;
+  } else {
+    fileLabel.innerText = "Rollo Revelado";
+    fileInput.disabled = true;
+  }
+}
 
-    const remainingSlots = MAX_PHOTOS - data.length;
-    if (remainingSlots > 0) {
-      fileLabel.innerText = `Elegir hasta ${remainingSlots} foto${remainingSlots>1?"s":""}`;
-    } else {
-      fileLabel.innerText = "Rollo completado";
-    }
+// Subida de fotos
+async function uploadPhotos(files){
+  loader.style.display="block";
+  uploadedCountSpan.innerText = "0";
 
-    if(data.length>=MAX_PHOTOS){
-      uploadBtn.innerText="Rollo Revelado"; uploadBtn.disabled=true;
-      fileInput.style.display="none"; fullMessage.style.display="block";
-    } else {
-      uploadBtn.innerText="Revelar Fotos"; uploadBtn.disabled=false;
-      fileInput.style.display="inline-block"; fullMessage.style.display="none";
-    }
+  let uploadedCount = 0;
+  for(const file of files){
+    const filePath = `${ROLL_CODE}/${Date.now()}-${file.name}`;
+    const {error: uploadError} = await client.storage.from(BUCKET).upload(filePath,file);
+    if(uploadError){ console.error("Upload error", uploadError); loader.style.display="none"; return; }
+
+    const {data: publicUrlData} = client.storage.from(BUCKET).getPublicUrl(filePath);
+    const {error: insertError} = await client.from("photos_v2").insert({ roll_code:ROLL_CODE, url:publicUrlData.publicUrl });
+    if(insertError){ console.error("Insert error", insertError); loader.style.display="none"; return; }
+
+    uploadedCount++;
+    uploadedCountSpan.innerText = uploadedCount;
   }
 
-  async function uploadPhotos(){
-    uploadBtn.disabled=true;
-    const {data: existingPhotos} = await client.from("photos_v2").select("id").eq("roll_code",ROLL_CODE);
-    const existingCount = existingPhotos.length;
-    const remainingSlots = MAX_PHOTOS - existingCount;
-
-    let files = Array.from(fileInput.files);
-    if(!files.length){ uploadBtn.disabled=false; return; }
-    if(files.length>remainingSlots){ files=files.slice(0,remainingSlots); alert(`Solo se pueden subir ${remainingSlots} fotos más.`); }
-
-    loader.style.display="block"; uploadedCountSpan.innerText="0";
-    let uploadedCount=0;
-
-    for(const file of files){
-      const filePath = `${ROLL_CODE}/${Date.now()}-${file.name}`;
-      const {error: uploadError} = await client.storage.from(BUCKET).upload(filePath,file);
-      if(uploadError){ console.error("Upload error", uploadError); loader.style.display="none"; uploadBtn.disabled=false; return; }
-
-      const {data: publicUrlData} = client.storage.from(BUCKET).getPublicUrl(filePath);
-
-      const {error: insertError} = await client.from("photos_v2").insert({ roll_code:ROLL_CODE, url:publicUrlData.publicUrl });
-      if(insertError){ console.error("Insert error", insertError); loader.style.display="none"; uploadBtn.disabled=false; return; }
-
-      uploadedCount++;
-      uploadedCountSpan.innerText = uploadedCount+existingCount;
-    }
-
-    fileInput.value=""; loader.style.display="none"; uploadBtn.disabled=false;
-    loadGallery();
-  }
-
-  // Lightbox functions
-  function openLightbox(index){
-    currentIndex=index;
-    lightboxImg.src = galleryData[index].url;
-    lightboxOverlay.style.display="flex";
-  }
-
-  function closeLightbox(){ lightboxOverlay.style.display="none"; }
-  function prevPhoto(){ currentIndex=(currentIndex-1+galleryData.length)%galleryData.length; lightboxImg.src=galleryData[currentIndex].url; }
-  function nextPhoto(){ currentIndex=(currentIndex+1)%galleryData.length; lightboxImg.src=galleryData[currentIndex].url; }
-
-  closeBtn.addEventListener("click",closeLightbox);
-  prevBtn.addEventListener("click",prevPhoto);
-  nextBtn.addEventListener("click",nextPhoto);
-  lightboxOverlay.addEventListener("click",(e)=>{ if(e.target===lightboxOverlay) closeLightbox(); });
-
-  uploadBtn.addEventListener("click",uploadPhotos);
+  loader.style.display="none";
+  fileInput.value="";
+  fileLabel.innerText = "Rollo Revelado";
+  fileInput.disabled = true;
   loadGallery();
+}
+
+// Listener para cambio de selección
+fileInput.addEventListener("change", () => {
+  const files = fileInput.files;
+  if(files.length === MAX_PHOTOS){
+    fileLabel.innerText = "Revelar Fotos";
+  } else {
+    fileLabel.innerText = `Elegir fotos`;
+  }
+});
+
+// Listener para hacer upload cuando se clickea el label
+fileLabel.addEventListener("click", async () => {
+  if(fileLabel.innerText === "Revelar Fotos"){
+    fileLabel.innerText = "Revelando…";
+    await uploadPhotos(fileInput.files);
+  }
+});
+
+// Lightbox
+function openLightbox(index){ currentIndex=index; lightboxImg.src = galleryData[index].url; lightboxOverlay.style.display="flex"; }
+function closeLightbox(){ lightboxOverlay.style.display="none"; }
+function prevPhoto(){ currentIndex=(currentIndex-1+galleryData.length)%galleryData.length; lightboxImg.src=galleryData[currentIndex].url; }
+function nextPhoto(){ currentIndex=(currentIndex+1)%galleryData.length; lightboxImg.src=galleryData[currentIndex].url; }
+
+closeBtn.addEventListener("click",closeLightbox);
+prevBtn.addEventListener("click",prevPhoto);
+nextBtn.addEventListener("click",nextPhoto);
+lightboxOverlay.addEventListener("click",(e)=>{ if(e.target===lightboxOverlay) closeLightbox(); });
+
+loadGallery();
 </script>
 
 </body>
