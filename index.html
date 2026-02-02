@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -25,17 +25,20 @@
       opacity: 0.8;
     }
 
-    label#fileLabel {
-      display: block;
-      text-align: center;
-      margin-bottom: 6px;
-      font-weight: 500;
+    /* Input oculto y label estilo botón */
+    input[type="file"] {
+      display: none;
     }
 
-    input[type="file"] {
-      margin-bottom: 12px;
+    .custom-file-label {
       display: inline-block;
-      text-align: center;
+      padding: 14px 30px;
+      font-size: 18px;
+      border-radius: 12px;
+      border: 1px solid black;
+      background: white;
+      cursor: pointer;
+      margin-bottom: 12px;
     }
 
     button {
@@ -95,10 +98,9 @@
 <h1>Mi Rollo</h1>
 <div id="counter">0 / 36 fotos</div>
 
-<div style="margin-bottom: 12px;">
-  <label for="fileInput" id="fileLabel">Elegir fotos</label>
-  <input type="file" id="fileInput" multiple accept="image/*" />
-</div>
+<!-- Input oculto y label como botón -->
+<label for="fileInput" class="custom-file-label" id="fileLabel">Elegir fotos</label>
+<input type="file" id="fileInput" multiple accept="image/*" />
 
 <button id="uploadBtn">Revelar Fotos</button>
 
@@ -144,7 +146,9 @@
 
     data.forEach(photo => {
       const img = document.createElement("img");
-      img.src = photo.url;
+      // Mostrar miniatura comprimida
+      const thumbUrl = photo.url + "?width=150&height=90&fit=crop";
+      img.src = thumbUrl;
       gallery.appendChild(img);
     });
 
@@ -163,7 +167,7 @@
     } else {
       uploadBtn.innerText = "Revelar Fotos";
       uploadBtn.disabled = false;
-      fileInput.style.display = "block";
+      fileInput.style.display = "inline-block";
       fullMessage.style.display = "none";
     }
   }
