@@ -19,7 +19,7 @@ h1 { font-size: 42px; margin-bottom: 8px; }
 
 /* Input oculto y label como botón */
 input[type="file"] { display: none; }
-.custom-file-label {
+.custom-file-label, #uploadBtn {
   display: inline-block;
   padding: 14px 30px;
   font-size: 18px;
@@ -92,6 +92,8 @@ input[type="file"] { display: none; }
 
 <input type="file" id="fileInput" multiple accept="image/*" />
 <label for="fileInput" class="custom-file-label" id="fileLabel">Elegir fotos</label>
+<br/>
+<button id="uploadBtn">Revelar Fotos</button>
 
 <div id="loader">
   Subiendo <span id="uploadedCount">0</span> / 36 <span class="camera"></span>
@@ -119,6 +121,7 @@ const counter = document.getElementById("counter");
 const gallery = document.getElementById("gallery");
 const fileInput = document.getElementById("fileInput");
 const fileLabel = document.getElementById("fileLabel");
+const uploadBtn = document.getElementById("uploadBtn");
 const loader = document.getElementById("loader");
 const uploadedCountSpan = document.getElementById("uploadedCount");
 const cameraDot = document.querySelector(".camera");
@@ -152,7 +155,8 @@ async function loadGallery() {
 }
 
 // Subida de fotos con flash por cada foto y añadido inmediato al grid
-async function uploadPhotos(files){
+async function uploadPhotos(){
+  const files = fileInput.files;
   if(!files || files.length===0) return;
 
   loader.style.display="block";
@@ -172,7 +176,6 @@ async function uploadPhotos(files){
     uploadedCount++;
     uploadedCountSpan.innerText = uploadedCount;
 
-    // Flash tipo cámara
     cameraDot.classList.remove("flash-photo");
     void cameraDot.offsetWidth;
     cameraDot.classList.add("flash-photo");
@@ -188,32 +191,18 @@ async function uploadPhotos(files){
 
     counter.innerText = `${galleryData.length} / ${MAX_PHOTOS} fotos`;
 
-    await new Promise(r => setTimeout(r, 150)); // delay para el flash
+    await new Promise(r => setTimeout(r, 150));
   }
 
   loader.style.display="none";
   fileInput.value="";
   fileLabel.innerText = "Rollo Revelado";
   fileInput.disabled = true;
+  uploadBtn.disabled = true;
 }
 
-// Listener para cambios en el input
-fileInput.addEventListener("change", () => {
-  if(fileInput.files.length === MAX_PHOTOS){
-    fileLabel.innerText = "Revelar Fotos";
-  }
-});
-
-// Listener click en label
-fileLabel.addEventListener("click", async () => {
-  const files = fileInput.files;
-  if(!files || files.length === 0) return;
-
-  if(fileLabel.innerText === "Revelar Fotos"){
-    fileLabel.innerText = "Revelando…";
-    await uploadPhotos(files);
-  }
-});
+// Botón Revelar Fotos
+uploadBtn.addEventListener("click", uploadPhotos);
 
 // Lightbox
 function openLightbox(index){ currentIndex=index; lightboxImg.src = galleryData[index].url; lightboxOverlay.style.display="flex"; }
