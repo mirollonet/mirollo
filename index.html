@@ -1,46 +1,44 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mi Rollo</title>
 
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
 body{
-  font-family: system-ui,-apple-system,BlinkMacSystemFont;
+  font-family:system-ui,-apple-system;
   margin:0;
   padding:16px;
   background:#fff;
   color:#000;
-  max-width:480px;
-  margin:auto;
+  display:flex;
+  justify-content:center;
 }
+main{ max-width:420px; width:100%; }
 
-h1{ margin-bottom:4px; }
-#counter{ margin-bottom:12px; }
+h1{ margin:0 0 4px 0; text-align:center; }
+#counter{ text-align:center; margin-bottom:12px; }
 
 #controls{
   display:flex;
+  justify-content:center;
   gap:12px;
   margin-bottom:16px;
 }
 
 button,label{
   padding:10px 16px;
-  border-radius:8px;
+  border-radius:10px;
   border:none;
   background:#000;
   color:#fff;
   font-size:14px;
   cursor:pointer;
 }
-
-button:disabled{
-  opacity:.5;
-  cursor:default;
-}
+button:disabled{ opacity:.5; }
 
 input[type=file]{ display:none; }
 
@@ -50,16 +48,13 @@ input[type=file]{ display:none; }
   gap:6px;
 }
 
-.thumb-wrap{
-  position:relative;
-}
-
+.thumb-wrap{ position:relative; }
 .thumb{
   width:100%;
   aspect-ratio:1/1;
   object-fit:cover;
+  border-radius:6px;
 }
-
 .menu-btn{
   position:absolute;
   top:4px;
@@ -67,19 +62,14 @@ input[type=file]{ display:none; }
   background:rgba(0,0,0,.6);
   color:#fff;
   border-radius:50%;
-  width:24px;
-  height:24px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  width:22px;
+  height:22px;
   font-size:16px;
+  line-height:20px;
+  text-align:center;
 }
 
-/* Loader */
-#loader{
-  display:none;
-  margin-top:12px;
-}
+#loader{ display:none; text-align:center; margin-top:12px; }
 
 /* Lightbox */
 #lightbox{
@@ -91,52 +81,48 @@ input[type=file]{ display:none; }
   justify-content:center;
   z-index:1000;
 }
-
-#lightbox img{
-  max-width:100%;
-  max-height:100%;
-}
-
-.close{
+#lightbox img{ max-width:100%; max-height:100%; }
+.nav, .close{
   position:absolute;
-  top:12px;
-  right:16px;
-  font-size:28px;
   color:#fff;
+  font-size:28px;
+  padding:16px;
 }
+.prev{ left:0; top:50%; transform:translateY(-50%); }
+.next{ right:0; top:50%; transform:translateY(-50%); }
+.close{ top:0; right:0; }
 
 /* iOS Action Sheet */
-#sheetOverlay{
+#sheet-bg{
   position:fixed;
   inset:0;
   background:rgba(0,0,0,.4);
   display:none;
-  z-index:2000;
+  z-index:1100;
 }
-
 #sheet{
   position:absolute;
   bottom:0;
-  width:100%;
+  left:0;
+  right:0;
   background:#f2f2f2;
-  border-radius:12px 12px 0 0;
-  padding:12px;
+  border-radius:16px 16px 0 0;
+  padding:8px;
 }
-
 .sheet-btn{
   background:#fff;
   padding:14px;
-  border-radius:10px;
-  margin-bottom:8px;
+  margin-bottom:6px;
+  border-radius:12px;
   text-align:center;
   font-size:16px;
 }
-
 .sheet-btn.danger{ color:red; }
 </style>
 </head>
 
 <body>
+<main>
 
 <h1>Mi Rollo</h1>
 <div id="counter">0 / 36 fotos</div>
@@ -146,32 +132,34 @@ input[type=file]{ display:none; }
     Elegir fotos
     <input type="file" id="fileInput" accept="image/*">
   </label>
-  <button id="revealBtn" disabled>Revelar Fotos</button>
+  <button id="revealBtn" disabled>Revelar fotos</button>
 </div>
 
 <div id="grid"></div>
-
-<div id="loader">Subiendo fotos…</div>
+<div id="loader">Revelando…</div>
 
 <!-- Lightbox -->
 <div id="lightbox">
   <div class="close">✕</div>
+  <div class="nav prev">‹</div>
   <img id="lightboxImg">
+  <div class="nav next">›</div>
 </div>
 
 <!-- Action Sheet -->
-<div id="sheetOverlay">
+<div id="sheet-bg">
   <div id="sheet">
-    <div class="sheet-btn" id="viewBtn">Ver foto</div>
-    <div class="sheet-btn" id="replaceBtn">Reemplazar</div>
-    <div class="sheet-btn danger" id="deleteBtn">Eliminar</div>
-    <div class="sheet-btn" id="cancelBtn">Cancelar</div>
+    <div class="sheet-btn" id="sheetView">Ver foto</div>
+    <div class="sheet-btn danger" id="sheetDelete">Eliminar</div>
+    <div class="sheet-btn" id="sheetCancel">Cancelar</div>
   </div>
 </div>
 
+</main>
+
 <script>
 const MAX = 36;
-const ROLL_CODE = "TEST002";
+const ROLL = "TEST002";
 const BUCKET = "photos";
 
 const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co";
@@ -181,124 +169,135 @@ const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let gallery = [];
 let pending = [];
-let selectedIndex = null;
+let locked = false;
+let revealed = localStorage.getItem("roll_revealed") === "true";
+let actionIndex = null;
 
 const grid = document.getElementById("grid");
 const counter = document.getElementById("counter");
-const revealBtn = document.getElementById("revealBtn");
+const fileInput = document.getElementById("fileInput");
 const fileLabel = document.getElementById("fileLabel");
+const revealBtn = document.getElementById("revealBtn");
 const loader = document.getElementById("loader");
 
-const sheetOverlay = document.getElementById("sheetOverlay");
+function updateUI(){
+  const total = gallery.length + pending.length;
+  counter.innerText = `${total} / ${MAX} fotos`;
 
-async function init(){
-  const { data } = await supabase
-    .from("photos_v2")
-    .select("url")
-    .eq("roll_code", ROLL_CODE);
-
-  gallery = data || [];
-  render();
+  if(revealed){
+    revealBtn.innerText = "Rollo revelado";
+    revealBtn.disabled = true;
+    fileLabel.style.display = "none";
+  }else{
+    revealBtn.disabled = total !== MAX;
+    fileLabel.style.display = total === MAX ? "none" : "inline-block";
+  }
 }
 
 function render(){
   grid.innerHTML = "";
   [...gallery, ...pending].forEach((p,i)=>{
-    const wrap = document.createElement("div");
-    wrap.className = "thumb-wrap";
+    const w = document.createElement("div");
+    w.className="thumb-wrap";
 
     const img = document.createElement("img");
     img.src = p.url;
-    img.className = "thumb";
-    img.onclick = ()=>openLightbox(i);
+    img.className="thumb";
+    img.onclick=()=>openLightbox(i);
 
-    wrap.appendChild(img);
+    w.appendChild(img);
 
-    if(i >= gallery.length){
-      const btn = document.createElement("div");
-      btn.className = "menu-btn";
-      btn.innerText = "⋯";
-      btn.onclick = ()=>openSheet(i);
-      wrap.appendChild(btn);
+    if(!revealed && pending.includes(p)){
+      const m=document.createElement("div");
+      m.className="menu-btn";
+      m.innerText="⋯";
+      m.onclick=(e)=>{ e.stopPropagation(); openSheet(i); };
+      w.appendChild(m);
     }
 
-    grid.appendChild(wrap);
+    grid.appendChild(w);
   });
-
-  const total = gallery.length + pending.length;
-  counter.innerText = `${total} / ${MAX} fotos`;
-
-  if(gallery.length === MAX){
-    revealBtn.innerText = "Rollo Revelado";
-    revealBtn.disabled = true;
-    fileLabel.style.display = "none";
-  }else{
-    revealBtn.disabled = total !== MAX;
-  }
 }
 
-fileInput.onchange = e=>{
-  const file = e.target.files[0];
+fileInput.onchange=e=>{
+  const file=e.target.files[0];
   if(!file) return;
-  if(gallery.length + pending.length >= MAX) return;
 
-  pending.push({
-    file,
-    url: URL.createObjectURL(file)
-  });
+  if(pending.some(p=>p.name===file.name && p.size===file.size)) return;
 
-  render();
+  if(gallery.length+pending.length<MAX){
+    pending.push({
+      file,
+      name:file.name,
+      size:file.size,
+      url:URL.createObjectURL(file)
+    });
+  }
+  fileInput.value="";
+  render(); updateUI();
 };
 
-revealBtn.onclick = async ()=>{
-  loader.style.display = "block";
+revealBtn.onclick=async()=>{
+  if(locked || revealed) return;
+  locked=true;
+  loader.style.display="block";
 
   for(const p of pending){
-    const path = `${ROLL_CODE}/${Date.now()}-${p.file.name}`;
-    await supabase.storage.from(BUCKET).upload(path, p.file);
-    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-
-    await supabase.from("photos_v2").insert({
-      roll_code: ROLL_CODE,
-      url: data.publicUrl
-    });
-
-    gallery.push({ url:data.publicUrl });
+    const path=`${ROLL}/${Date.now()}-${p.name}`;
+    await supabase.storage.from(BUCKET).upload(path,p.file);
+    const {data}=supabase.storage.from(BUCKET).getPublicUrl(path);
+    await supabase.from("photos_v2").insert({ roll_code:ROLL, url:data.publicUrl });
+    gallery.push({url:data.publicUrl});
   }
 
-  pending = [];
-  loader.style.display = "none";
-  render();
+  pending=[];
+  revealed=true;
+  localStorage.setItem("roll_revealed","true");
+  loader.style.display="none";
+  locked=false;
+  render(); updateUI();
 };
 
-function openSheet(i){
-  selectedIndex = i;
-  sheetOverlay.style.display = "block";
+async function load(){
+  const {data}=await supabase.from("photos_v2").select("url").eq("roll_code",ROLL);
+  gallery=data||[];
+  render(); updateUI();
 }
 
-cancelBtn.onclick = ()=>sheetOverlay.style.display="none";
-
-deleteBtn.onclick = ()=>{
-  pending.splice(selectedIndex - gallery.length,1);
-  sheetOverlay.style.display="none";
-  render();
-};
-
-viewBtn.onclick = ()=>{
-  openLightbox(selectedIndex);
-  sheetOverlay.style.display="none";
-};
-
+/* Lightbox */
+let idx=0;
+const lb=document.getElementById("lightbox");
+const lbImg=document.getElementById("lightboxImg");
 function openLightbox(i){
-  lightbox.style.display="flex";
-  lightboxImg.src = [...gallery,...pending][i].url;
+  idx=i;
+  lbImg.src=[...gallery,...pending][i].url;
+  lb.style.display="flex";
 }
+function nav(d){
+  const all=[...gallery,...pending];
+  idx=(idx+d+all.length)%all.length;
+  lbImg.src=all[idx].url;
+}
+document.querySelector(".close").onclick=()=>lb.style.display="none";
+document.querySelector(".prev").onclick=()=>nav(-1);
+document.querySelector(".next").onclick=()=>nav(1);
 
-document.querySelector(".close").onclick = ()=>{
-  lightbox.style.display="none";
+/* Action Sheet */
+const sheetBg=document.getElementById("sheet-bg");
+function openSheet(i){ actionIndex=i; sheetBg.style.display="block"; }
+function closeSheet(){ sheetBg.style.display="none"; }
+
+sheetBg.onclick=closeSheet;
+document.getElementById("sheetCancel").onclick=closeSheet;
+document.getElementById("sheetView").onclick=()=>{
+  closeSheet(); openLightbox(actionIndex);
+};
+document.getElementById("sheetDelete").onclick=()=>{
+  pending.splice(actionIndex-gallery.length,1);
+  closeSheet(); render(); updateUI();
 };
 
-init();
+load();
 </script>
 
 </body>
