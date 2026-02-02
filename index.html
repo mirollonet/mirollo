@@ -5,119 +5,117 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Mi Rollo</title>
 
+<!-- Supabase SDK -->
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
-  body {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont;
-    margin: 0;
-    padding: 16px;
-    background: #fff;
-    color: #000;
-  }
+body{
+  font-family: system-ui, -apple-system, BlinkMacSystemFont;
+  margin:0;
+  padding:16px;
+  background:#fff;
+  color:#000;
+}
+h1{ margin-bottom:4px; }
+#counter{ margin-bottom:12px; }
 
-  h1 { margin-bottom: 4px; }
+#controls{
+  display:flex;
+  gap:12px;
+  margin-bottom:16px;
+  justify-content:flex-start;
+}
 
-  #counter { margin-bottom: 12px; }
+button,label{
+  padding:10px 16px;
+  border-radius:8px;
+  border:none;
+  background:#000;
+  color:#fff;
+  font-size:14px;
+  cursor:pointer;
+}
 
-  #controls {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 16px;
-  }
+button:disabled{
+  opacity:.5;
+  cursor:default;
+}
 
-  button, label {
-    padding: 10px 16px;
-    border-radius: 8px;
-    border: none;
-    background: #000;
-    color: #fff;
-    cursor: pointer;
-    font-size: 14px;
-  }
+input[type=file]{ display:none; }
 
-  button:disabled {
-    opacity: 0.5;
-    cursor: default;
-  }
+#grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:6px;
+}
 
-  input[type="file"] {
-    display: none;
-  }
+.thumb{
+  width:100%;
+  aspect-ratio:1/1;
+  object-fit:cover;
+  cursor:pointer;
+}
 
-  #grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
-  }
+/* Loader */
+#loader{
+  display:none;
+  margin-top:12px;
+}
 
-  .thumb {
-    width: 100%;
-    aspect-ratio: 1/1;
-    object-fit: cover;
-    cursor: pointer;
-  }
+#dot{
+  width:10px;
+  height:10px;
+  background:#000;
+  border-radius:50%;
+  animation:blink 1s infinite;
+  display:inline-block;
+  margin-right:8px;
+}
 
-  /* Loader */
-  #loader {
-    display: none;
-    margin-top: 12px;
-  }
+@keyframes blink{
+  0%{opacity:0}
+  50%{opacity:1}
+  100%{opacity:0}
+}
 
-  #dot {
-    width: 10px;
-    height: 10px;
-    background: #000;
-    border-radius: 50%;
-    animation: blink 1s infinite;
-    display: inline-block;
-    margin-right: 8px;
-  }
+/* Lightbox */
+#lightbox{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.95);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:1000;
+}
 
-  @keyframes blink {
-    0% { opacity: 0; }
-    50% { opacity: 1; }
-    100% { opacity: 0; }
-  }
+#lightbox img{
+  max-width:100%;
+  max-height:100%;
+}
 
-  /* Lightbox */
-  #lightbox {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.95);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
+.nav{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:32px;
+  color:#fff;
+  padding:16px;
+  user-select:none;
+  cursor:pointer;
+}
 
-  #lightbox img {
-    max-width: 100%;
-    max-height: 100%;
-  }
+.prev{ left:0; }
+.next{ right:0; }
 
-  .nav {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 32px;
-    color: white;
-    cursor: pointer;
-    padding: 16px;
-    user-select: none;
-  }
-
-  .prev { left: 0; }
-  .next { right: 0; }
-
-  .close {
-    position: absolute;
-    top: 12px;
-    right: 16px;
-    font-size: 28px;
-    cursor: pointer;
-    color: white;
-  }
+.close{
+  position:absolute;
+  top:12px;
+  right:16px;
+  font-size:28px;
+  cursor:pointer;
+  color:#fff;
+}
 </style>
 </head>
 
@@ -129,7 +127,7 @@
 <div id="controls">
   <label id="fileLabel">
     Elegir fotos
-    <input type="file" id="fileInput" accept="image/*" multiple />
+    <input type="file" id="fileInput" accept="image/*" multiple>
   </label>
   <button id="revealBtn" disabled>Revelar Fotos</button>
 </div>
@@ -145,28 +143,45 @@
 <div id="lightbox">
   <div class="close">✕</div>
   <div class="nav prev">‹</div>
-  <img id="lightboxImg" />
+  <img id="lightboxImg">
   <div class="nav next">›</div>
 </div>
 
 <script>
-/* CONFIG */
+/* =====================================================
+   CONFIG GENERAL
+===================================================== */
 const MAX_PHOTOS = 36;
 const ROLL_CODE = "TEST002";
 const BUCKET = "photos";
 
-/* SUPABASE */
+/* =====================================================
+   🔴 SUPABASE – PEGAR TUS DATOS ACÁ 🔴
+   Supabase → Settings → API
+===================================================== */
+
+// ⬇⬇⬇ PEGÁ ACÁ TU Project URL
+const SUPABASE_URL = "https://PEGA-ACA-TU-PROYECTO.supabase.co";
+
+// ⬇⬇⬇ PEGÁ ACÁ TU anon public key
+const SUPABASE_ANON_KEY = "PEGA-ACA-TU-ANON-PUBLIC-KEY";
+
+// ❗ NO USAR service_role ❗
 const supabase = supabase.createClient(
-  "https://TU_PROYECTO.supabase.co",
-  "TU_PUBLIC_ANON_KEY"
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
 );
 
-/* STATE */
+/* =====================================================
+   STATE
+===================================================== */
 let galleryData = [];
 let pendingPhotos = [];
 let currentIndex = 0;
 
-/* ELEMENTS */
+/* =====================================================
+   ELEMENTOS
+===================================================== */
 const counter = document.getElementById("counter");
 const grid = document.getElementById("grid");
 const fileInput = document.getElementById("fileInput");
@@ -175,43 +190,47 @@ const revealBtn = document.getElementById("revealBtn");
 const loader = document.getElementById("loader");
 const uploadedCountSpan = document.getElementById("uploadedCount");
 
-/* LIGHTBOX */
 const lightbox = document.getElementById("lightbox");
 const lightboxImg = document.getElementById("lightboxImg");
 
-/* INIT */
+/* =====================================================
+   INIT
+===================================================== */
 loadFromSupabase();
 
-/* FUNCTIONS */
-
+/* =====================================================
+   UI
+===================================================== */
 function updateCounter(){
   const total = galleryData.length + pendingPhotos.length;
   counter.innerText = `${total} / ${MAX_PHOTOS} fotos`;
 
   if(total === MAX_PHOTOS){
     revealBtn.disabled = false;
-    fileLabel.style.display = "none";
-  } else {
+    fileLabel.style.visibility = "hidden";
+  }else{
     revealBtn.disabled = true;
-    fileLabel.style.display = "inline-block";
+    fileLabel.style.visibility = "visible";
   }
 }
 
 function renderGrid(){
   grid.innerHTML = "";
-
-  [...galleryData, ...pendingPhotos].forEach((photo, index) => {
+  [...galleryData, ...pendingPhotos].forEach((p,i)=>{
     const img = document.createElement("img");
-    img.src = photo.url;
+    img.src = p.url;
     img.className = "thumb";
-    img.onclick = () => openLightbox(index);
+    img.onclick = ()=>openLightbox(i);
     grid.appendChild(img);
   });
 }
 
-fileInput.addEventListener("change", e => {
+/* =====================================================
+   FILE INPUT
+===================================================== */
+fileInput.addEventListener("change", e=>{
   const files = Array.from(e.target.files);
-  files.forEach(file => {
+  files.forEach(file=>{
     if(galleryData.length + pendingPhotos.length < MAX_PHOTOS){
       pendingPhotos.push({
         file,
@@ -224,17 +243,19 @@ fileInput.addEventListener("change", e => {
   updateCounter();
 });
 
+/* =====================================================
+   REVELAR ROLLO
+===================================================== */
 revealBtn.addEventListener("click", revealRoll);
 
 async function revealRoll(){
-
   const total = galleryData.length + pendingPhotos.length;
 
-  /* ✅ CASO CLAVE: ya está completo sin pendientes */
+  // Caso: ya completo y sin pendientes
   if(pendingPhotos.length === 0 && total === MAX_PHOTOS){
     revealBtn.innerText = "Rollo Revelado";
     revealBtn.disabled = true;
-    fileLabel.style.display = "none";
+    fileLabel.style.visibility = "hidden";
     return;
   }
 
@@ -264,12 +285,14 @@ async function revealRoll(){
   loader.style.display = "none";
   revealBtn.innerText = "Rollo Revelado";
   revealBtn.disabled = true;
-  fileLabel.style.display = "none";
+  fileLabel.style.visibility = "hidden";
   renderGrid();
   updateCounter();
 }
 
-/* SUPABASE LOAD */
+/* =====================================================
+   CARGA DESDE SUPABASE
+===================================================== */
 async function loadFromSupabase(){
   const { data } = await supabase
     .from("photos_v2")
@@ -277,15 +300,17 @@ async function loadFromSupabase(){
     .eq("roll_code", ROLL_CODE)
     .order("id", { ascending: true });
 
-  galleryData = data || [];
+  galleryData = Array.isArray(data) ? data : [];
   renderGrid();
   updateCounter();
 }
 
-/* LIGHTBOX */
-function openLightbox(index){
-  currentIndex = index;
-  lightboxImg.src = [...galleryData, ...pendingPhotos][index].url;
+/* =====================================================
+   LIGHTBOX + SWIPE
+===================================================== */
+function openLightbox(i){
+  currentIndex = i;
+  lightboxImg.src = [...galleryData, ...pendingPhotos][i].url;
   lightbox.style.display = "flex";
 }
 
@@ -294,8 +319,8 @@ function closeLightbox(){
 }
 
 document.querySelector(".close").onclick = closeLightbox;
-document.querySelector(".prev").onclick = () => navigate(-1);
-document.querySelector(".next").onclick = () => navigate(1);
+document.querySelector(".prev").onclick = ()=>navigate(-1);
+document.querySelector(".next").onclick = ()=>navigate(1);
 
 function navigate(dir){
   const all = [...galleryData, ...pendingPhotos];
@@ -303,18 +328,15 @@ function navigate(dir){
   lightboxImg.src = all[currentIndex].url;
 }
 
-/* SWIPE */
-let startX = 0;
-let startY = 0;
-
-lightbox.addEventListener("touchstart", e => {
-  startX = e.touches[0].clientX;
-  startY = e.touches[0].clientY;
+let sx=0, sy=0;
+lightbox.addEventListener("touchstart", e=>{
+  sx = e.touches[0].clientX;
+  sy = e.touches[0].clientY;
 });
 
-lightbox.addEventListener("touchend", e => {
-  const dx = e.changedTouches[0].clientX - startX;
-  const dy = e.changedTouches[0].clientY - startY;
+lightbox.addEventListener("touchend", e=>{
+  const dx = e.changedTouches[0].clientX - sx;
+  const dy = e.changedTouches[0].clientY - sy;
 
   if(dy > 60) closeLightbox();
   else if(dx > 50) navigate(-1);
