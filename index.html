@@ -192,7 +192,7 @@ function updateCounter(){
   const totalPhotos = galleryData.length + pendingPhotos.length;
   counter.innerText = `${totalPhotos} / ${MAX_PHOTOS} fotos`;
 
-  revealBtn.disabled = totalPhotos !== MAX_PHOTOS;
+  revealBtn.disabled = pendingPhotos.length === 0 || totalPhotos !== MAX_PHOTOS;
 }
 
 function updateFileButton(){
@@ -209,23 +209,35 @@ fileInput.addEventListener("change",()=>{
   fileInput.value = "";
 });
 
+// === FUNCIÓN REVELAR ROLLO CORREGIDA ===
 async function revealRoll(){
-  if(pendingPhotos.length !== MAX_PHOTOS) return;
-  loader.style.display = "block"; uploadedCountSpan.innerText = "0";
+  if(pendingPhotos.length === 0) return; // nada que subir
+
+  loader.style.display = "block";
+  uploadedCountSpan.innerText = "0";
   revealBtn.disabled = true;
 
   for(let i=0;i<pendingPhotos.length;i++){
     const photo = pendingPhotos[i];
     const filePath = `${ROLL_CODE}/${Date.now()}-${photo.file.name}`;
     const {error: uploadError} = await client.storage.from(BUCKET).upload(filePath,photo.file);
-    if(uploadError){ console.error("Upload error", uploadError); loader.style.display="none"; return; }
+    if(uploadError){ 
+      console.error("Upload error", uploadError); 
+      loader.style.display="none"; 
+      revealBtn.disabled = false;
+      return; 
+    }
 
     const {data: publicUrlData} = client.storage.from(BUCKET).getPublicUrl(filePath);
     const {error: insertError} = await client.from("photos_v2").insert({ roll_code:ROLL_CODE, url:publicUrlData.publicUrl });
-    if(insertError){ console.error("Insert error", insertError); loader.style.display="none"; return; }
+    if(insertError){ 
+      console.error("Insert error", insertError); 
+      loader.style.display="none"; 
+      revealBtn.disabled = false;
+      return; 
+    }
 
     uploadedCountSpan.innerText = i+1;
-
     galleryData.push({ url: publicUrlData.publicUrl });
   }
 
