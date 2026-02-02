@@ -5,21 +5,50 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Mi Rollo</title>
 
+<!-- Supabase SDK -->
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
+/* ================= RESET / BASE ================= */
 body{
-  font-family: system-ui, -apple-system, BlinkMacSystemFont;
   margin:0;
-  padding:16px;
-  background:#fff;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont;
+  background:#f5f5f5;
   color:#000;
 }
-h1{ margin-bottom:4px; }
-#counter{ margin-bottom:12px; }
 
+/* ================= APP CENTRADA ================= */
+.app{
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+}
+
+.roll-container{
+  width:100%;
+  max-width:420px;   /* ancho mobile real */
+  padding:16px;
+  box-sizing:border-box;
+  background:#fff;
+}
+
+/* ================= TEXTOS ================= */
+h1{
+  margin:0 0 4px 0;
+  text-align:center;
+}
+
+#counter{
+  text-align:center;
+  margin-bottom:12px;
+  font-size:14px;
+  opacity:.7;
+}
+
+/* ================= CONTROLES ================= */
 #controls{
   display:flex;
+  justify-content:center;
   gap:12px;
   margin-bottom:16px;
 }
@@ -39,8 +68,11 @@ button:disabled{
   cursor:default;
 }
 
-input[type=file]{ display:none; }
+input[type=file]{
+  display:none;
+}
 
+/* ================= GRID ================= */
 #grid{
   display:grid;
   grid-template-columns:repeat(3,1fr);
@@ -54,10 +86,12 @@ input[type=file]{ display:none; }
   cursor:pointer;
 }
 
-/* Loader */
+/* ================= LOADER ================= */
 #loader{
   display:none;
   margin-top:12px;
+  text-align:center;
+  font-size:14px;
 }
 
 #dot{
@@ -67,7 +101,7 @@ input[type=file]{ display:none; }
   border-radius:50%;
   animation:blink 1s infinite;
   display:inline-block;
-  margin-right:8px;
+  margin-right:6px;
 }
 
 @keyframes blink{
@@ -76,7 +110,7 @@ input[type=file]{ display:none; }
   100%{opacity:0}
 }
 
-/* Lightbox */
+/* ================= LIGHTBOX ================= */
 #lightbox{
   position:fixed;
   inset:0;
@@ -119,24 +153,31 @@ input[type=file]{ display:none; }
 
 <body>
 
-<h1>Mi Rollo</h1>
-<div id="counter">0 / 36 fotos</div>
+<div class="app">
+  <div class="roll-container">
 
-<div id="controls">
-  <label id="fileLabel">
-    Elegir fotos
-    <input type="file" id="fileInput" accept="image/*" multiple>
-  </label>
-  <button id="revealBtn" disabled>Revelar Fotos</button>
+    <h1>Mi Rollo</h1>
+    <div id="counter">0 / 36 fotos</div>
+
+    <div id="controls">
+      <label id="fileLabel">
+        Elegir fotos
+        <input type="file" id="fileInput" accept="image/*" multiple>
+      </label>
+      <button id="revealBtn" disabled>Revelar Fotos</button>
+    </div>
+
+    <div id="grid"></div>
+
+    <div id="loader">
+      <span id="dot"></span>
+      Subiendo <span id="uploadedCount">0</span> / 36
+    </div>
+
+  </div>
 </div>
 
-<div id="grid"></div>
-
-<div id="loader">
-  <span id="dot"></span>
-  Subiendo <span id="uploadedCount">0</span> / 36
-</div>
-
+<!-- LIGHTBOX -->
 <div id="lightbox">
   <div class="close">✕</div>
   <div class="nav prev">‹</div>
@@ -152,7 +193,7 @@ const BUCKET = "photos";
 
 /* ================= SUPABASE ================= */
 const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4";
+const SUPABASE_ANON_KEY = "PEGA_TU_ANON_KEY_AQUI";
 
 const supabaseClient = supabase.createClient(
   SUPABASE_URL,
@@ -163,7 +204,7 @@ const supabaseClient = supabase.createClient(
 let galleryData = [];
 let pendingPhotos = [];
 let currentIndex = 0;
-let isUploading = false; // 🔒 bloqueo doble clic
+let isUploading = false;
 
 /* ================= ELEMENTOS ================= */
 const counter = document.getElementById("counter");
@@ -180,8 +221,6 @@ const lightboxImg = document.getElementById("lightboxImg");
 loadFromSupabase();
 
 /* ================= HELPERS ================= */
-
-// 🔁 Evitar duplicados (nombre + tamaño)
 function isDuplicate(file){
   return pendingPhotos.some(p =>
     p.file.name === file.name && p.file.size === file.size
@@ -238,17 +277,8 @@ fileInput.addEventListener("change", e=>{
 revealBtn.addEventListener("click", revealRoll);
 
 async function revealRoll(){
-  if(isUploading) return; // 🔒 bloquea doble click
+  if(isUploading) return;
   isUploading = true;
-
-  const total = galleryData.length + pendingPhotos.length;
-
-  if(pendingPhotos.length === 0 && total === MAX_PHOTOS){
-    revealBtn.innerText = "Rollo Revelado";
-    revealBtn.disabled = true;
-    isUploading = false;
-    return;
-  }
 
   if(pendingPhotos.length === 0){
     isUploading = false;
