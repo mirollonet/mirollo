@@ -53,12 +53,28 @@ input[type="file"] { display: none; }
   grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
   gap: 10px;
   margin-top: 20px;
+  position: relative;
 }
-.gallery img {
+.gallery-item {
+  position: relative;
+}
+.gallery-item img {
   width: 100%;
   height: 90px;
   object-fit: cover;
   border-radius: 6px;
+  cursor: pointer;
+}
+.action-btn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  font-weight: bold;
+  border-radius: 4px;
+  padding: 0 4px;
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -109,7 +125,7 @@ input[type="file"] { display: none; }
 <script>
 const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4";
-const ROLL_CODE = "TEST004";
+const ROLL_CODE = "TEST002";
 const MAX_PHOTOS = 36;
 const BUCKET = "mirollo";
 
@@ -130,121 +146,109 @@ const closeBtn = lightboxOverlay.querySelector(".close");
 const prevBtn = lightboxOverlay.querySelector(".prev");
 const nextBtn = lightboxOverlay.querySelector(".next");
 
-let pendingPhotos = []; // fotos locales antes de subir
+let pendingPhotos = [];
 let galleryData = [];
 let currentIndex = 0;
 
-// Actualiza el grid con miniaturas locales y menú de acciones
+// Actualiza el grid con miniaturas y menú de acciones
 function updateGalleryGrid() {
   gallery.innerHTML = "";
   pendingPhotos.forEach((photo,index)=>{
+    const itemDiv = document.createElement("div");
+    itemDiv.className = "gallery-item";
     const img = document.createElement("img");
     img.src = URL.createObjectURL(photo.file);
     img.dataset.index = index;
 
-    img.addEventListener("click", (e)=>{
-      e.preventDefault();
-      openLightbox(index);
+    img.addEventListener("click", ()=> openLightbox(index));
+    itemDiv.appendChild(img);
+
+    // Botón de acciones ⋮
+    const actionBtn = document.createElement("div");
+    actionBtn.className = "action-btn";
+    actionBtn.innerText = "⋮";
+    actionBtn.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      showActionMenu(index, e.pageX, e.pageY);
     });
+    itemDiv.appendChild(actionBtn);
 
-    img.addEventListener("contextmenu", (e)=>{
-      e.preventDefault();
-      // Menú flotante simple
-      const menu = document.createElement("div");
-      menu.style.position="absolute";
-      menu.style.background="white";
-      menu.style.border="1px solid black";
-      menu.style.padding="4px";
-      menu.style.zIndex=10000;
-
-      const view = document.createElement("div");
-      view.innerText="Ver grande";
-      view.style.cursor="pointer";
-      view.onclick = ()=>{
-        openLightbox(index);
-        document.body.removeChild(menu);
-      };
-
-      const replace = document.createElement("div");
-      replace.innerText="Reemplazar";
-      replace.style.cursor="pointer";
-      replace.onclick = ()=>{
-        const input = document.createElement("input");
-        input.type="file";
-        input.accept="image/*";
-        input.onchange = ()=> {
-          const file = input.files[0];
-          if(file){
-            pendingPhotos[index] = { file };
-            updateGalleryGrid();
-          }
-        };
-        input.click();
-        document.body.removeChild(menu);
-      };
-
-      const remove = document.createElement("div");
-      remove.innerText="Eliminar";
-      remove.style.cursor="pointer";
-      remove.onclick = ()=>{
-        pendingPhotos.splice(index,1);
-        updateGalleryGrid();
-        updateCounter();
-        document.body.removeChild(menu);
-      };
-
-      menu.appendChild(view);
-      menu.appendChild(replace);
-      menu.appendChild(remove);
-
-      menu.style.top = e.pageY + "px";
-      menu.style.left = e.pageX + "px";
-      document.body.appendChild(menu);
-
-      // Cerrar al hacer click afuera
-      const closeMenu = (ev)=>{
-        if(!menu.contains(ev.target)){
-          document.body.removeChild(menu);
-          document.removeEventListener("click", closeMenu);
-        }
-      };
-      document.addEventListener("click", closeMenu);
-    });
-
-    gallery.appendChild(img);
+    gallery.appendChild(itemDiv);
   });
 }
 
-// Actualiza contador y botón revelar
+function showActionMenu(index, x, y){
+  const menu = document.createElement("div");
+  menu.style.position="absolute";
+  menu.style.background="white";
+  menu.style.border="1px solid black";
+  menu.style.padding="4px";
+  menu.style.zIndex=10000;
+
+  const view = document.createElement("div");
+  view.innerText="Ver grande"; view.style.cursor="pointer";
+  view.onclick = ()=>{
+    openLightbox(index);
+    document.body.removeChild(menu);
+  };
+
+  const replace = document.createElement("div");
+  replace.innerText="Reemplazar"; replace.style.cursor="pointer";
+  replace.onclick = ()=>{
+    const input = document.createElement("input");
+    input.type="file"; input.accept="image/*";
+    input.onchange = ()=> {
+      const file = input.files[0];
+      if(file){ pendingPhotos[index] = { file }; updateGalleryGrid(); }
+    };
+    input.click();
+    document.body.removeChild(menu);
+  };
+
+  const remove = document.createElement("div");
+  remove.innerText="Eliminar"; remove.style.cursor="pointer";
+  remove.onclick = ()=>{
+    pendingPhotos.splice(index,1); updateGalleryGrid(); updateCounter();
+    document.body.removeChild(menu);
+  };
+
+  menu.appendChild(view); menu.appendChild(replace); menu.appendChild(remove);
+  menu.style.top = y + "px";
+  menu.style.left = x + "px";
+  document.body.appendChild(menu);
+
+  const closeMenu = (ev)=>{
+    if(!menu.contains(ev.target)){
+      document.body.removeChild(menu);
+      document.removeEventListener("click", closeMenu);
+    }
+  };
+  document.addEventListener("click", closeMenu);
+}
+
+// Contador y habilitación de botón
 function updateCounter(){
   counter.innerText = `${pendingPhotos.length} / ${MAX_PHOTOS} fotos`;
   revealBtn.disabled = pendingPhotos.length !== MAX_PHOTOS;
 }
 
-// Agregar fotos seleccionadas al array local
+// Agregar fotos
 fileInput.addEventListener("change",()=>{
   const files = Array.from(fileInput.files);
   const spaceLeft = MAX_PHOTOS - pendingPhotos.length;
-  files.slice(0,spaceLeft).forEach(file=>{
-    pendingPhotos.push({ file });
-  });
-  updateGalleryGrid();
-  updateCounter();
-  fileInput.value = "";
+  files.slice(0,spaceLeft).forEach(file=>{ pendingPhotos.push({ file }); });
+  updateGalleryGrid(); updateCounter(); fileInput.value = "";
 });
 
-// Subida final a Supabase
+// Subida a Supabase
 async function revealRoll(){
   if(pendingPhotos.length !== MAX_PHOTOS) return;
-
-  loader.style.display = "block";
-  uploadedCountSpan.innerText = "0";
+  loader.style.display = "block"; uploadedCountSpan.innerText = "0";
   revealBtn.disabled = true;
 
   for(let i=0;i<pendingPhotos.length;i++){
     const photo = pendingPhotos[i];
     const filePath = `${ROLL_CODE}/${Date.now()}-${photo.file.name}`;
-
     const {error: uploadError} = await client.storage.from(BUCKET).upload(filePath,photo.file);
     if(uploadError){ console.error("Upload error", uploadError); loader.style.display="none"; return; }
 
@@ -253,7 +257,6 @@ async function revealRoll(){
     if(insertError){ console.error("Insert error", insertError); loader.style.display="none"; return; }
 
     uploadedCountSpan.innerText = i+1;
-
     cameraDot.classList.remove("flash-photo");
     void cameraDot.offsetWidth;
     cameraDot.classList.add("flash-photo");
@@ -267,21 +270,14 @@ async function revealRoll(){
   pendingPhotos = [];
 }
 
-// Botón revelar
 revealBtn.addEventListener("click",revealRoll);
 
 // Lightbox
 function openLightbox(index){
-  if(index < galleryData.length){
-    currentIndex=index;
-    lightboxImg.src = galleryData[index].url;
-    lightboxOverlay.style.display="flex";
-  } else if(index < pendingPhotos.length){
-    // mostrar URL temporal
-    currentIndex=index;
-    lightboxImg.src = URL.createObjectURL(pendingPhotos[index].file);
-    lightboxOverlay.style.display="flex";
-  }
+  currentIndex=index;
+  if(index < galleryData.length) lightboxImg.src = galleryData[index].url;
+  else lightboxImg.src = URL.createObjectURL(pendingPhotos[index].file);
+  lightboxOverlay.style.display="flex";
 }
 function closeLightbox(){ lightboxOverlay.style.display="none"; }
 function prevPhoto(){ 
@@ -298,6 +294,15 @@ prevBtn.addEventListener("click",prevPhoto);
 nextBtn.addEventListener("click",nextPhoto);
 lightboxOverlay.addEventListener("click",(e)=>{ if(e.target===lightboxOverlay) closeLightbox(); });
 
+// Swipe táctil
+let touchStartX = 0;
+lightboxOverlay.addEventListener("touchstart", e => { touchStartX = e.changedTouches[0].screenX; });
+lightboxOverlay.addEventListener("touchend", e => {
+  const touchEndX = e.changedTouches[0].screenX;
+  const diff = touchEndX - touchStartX;
+  if(diff > 50) prevPhoto();
+  else if(diff < -50) nextPhoto();
+});
 </script>
 </body>
 </html>
