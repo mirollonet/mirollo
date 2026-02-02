@@ -88,7 +88,15 @@ input[type="file"] { display: none; }
   align-items:center;
   z-index: 9999;
 }
-#lightboxOverlay img { width: 100%; height: 100%; object-fit: contain; }
+#lightboxOverlay img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity:0;
+  transition: opacity 0.3s ease-in-out; /* transición suave */
+}
+#lightboxOverlay.show img { opacity:1; }
+
 #lightboxOverlay .close, #lightboxOverlay .prev, #lightboxOverlay .next {
   position:absolute;
   color:white; font-size:32px; font-weight:bold; cursor:pointer;
@@ -150,20 +158,47 @@ let pendingPhotos = [];
 let galleryData = [];
 let currentIndex = 0;
 
+// --- CARGA AUTOMÁTICA DE FOTOS YA SUBIDAS ---
+async function loadGalleryFromSupabase(){
+  const { data, error } = await client
+    .from("photos_v2")
+    .select("url")
+    .eq("roll_code", ROLL_CODE)
+    .order('id', { ascending: true });
+
+  if(error){ console.error("Error cargando fotos", error); return; }
+
+  galleryData = data.map(d=>({ url: d.url }));
+  updateGalleryGrid();
+  updateCounter();
+}
+
 // Actualiza el grid con miniaturas y menú de acciones
 function updateGalleryGrid() {
   gallery.innerHTML = "";
+  
+  // Fotos subidas primero (sin botón de acciones)
+  galleryData.forEach((photo,index)=>{
+    const itemDiv = document.createElement("div");
+    itemDiv.className = "gallery-item";
+    const img = document.createElement("img");
+    img.src = photo.url;
+    img.dataset.index = index;
+    img.addEventListener("click", ()=> openLightbox(index));
+    itemDiv.appendChild(img);
+    gallery.appendChild(itemDiv);
+  });
+
+  // Fotos pendientes (con botón ⋮)
   pendingPhotos.forEach((photo,index)=>{
     const itemDiv = document.createElement("div");
     itemDiv.className = "gallery-item";
     const img = document.createElement("img");
     img.src = URL.createObjectURL(photo.file);
-    img.dataset.index = index;
-
-    img.addEventListener("click", ()=> openLightbox(index));
+    img.dataset.index = galleryData.length + index;
+    img.addEventListener("click", ()=> openLightbox(galleryData.length + index));
     itemDiv.appendChild(img);
 
-    // Botón de acciones ⋮
     const actionBtn = document.createElement("div");
     actionBtn.className = "action-btn";
     actionBtn.innerText = "⋮";
@@ -177,6 +212,7 @@ function updateGalleryGrid() {
   });
 }
 
+// Menú de acciones para fotos pendientes
 function showActionMenu(index, x, y){
   const menu = document.createElement("div");
   menu.style.position="absolute";
@@ -188,7 +224,7 @@ function showActionMenu(index, x, y){
   const view = document.createElement("div");
   view.innerText="Ver grande"; view.style.cursor="pointer";
   view.onclick = ()=>{
-    openLightbox(index);
+    openLightbox(galleryData.length + index);
     document.body.removeChild(menu);
   };
 
@@ -228,14 +264,14 @@ function showActionMenu(index, x, y){
 
 // Contador y habilitación de botón
 function updateCounter(){
-  counter.innerText = `${pendingPhotos.length} / ${MAX_PHOTOS} fotos`;
+  counter.innerText = `${galleryData.length + pendingPhotos.length} / ${MAX_PHOTOS} fotos`;
   revealBtn.disabled = pendingPhotos.length !== MAX_PHOTOS;
 }
 
 // Agregar fotos
 fileInput.addEventListener("change",()=>{
   const files = Array.from(fileInput.files);
-  const spaceLeft = MAX_PHOTOS - pendingPhotos.length;
+  const spaceLeft = MAX_PHOTOS - (galleryData.length + pendingPhotos.length);
   files.slice(0,spaceLeft).forEach(file=>{ pendingPhotos.push({ file }); });
   updateGalleryGrid(); updateCounter(); fileInput.value = "";
 });
@@ -268,6 +304,7 @@ async function revealRoll(){
   fileLabel.innerText = "Rollo Revelado";
   revealBtn.disabled = true;
   pendingPhotos = [];
+  updateGalleryGrid();
 }
 
 revealBtn.addEventListener("click",revealRoll);
@@ -275,11 +312,16 @@ revealBtn.addEventListener("click",revealRoll);
 // Lightbox
 function openLightbox(index){
   currentIndex=index;
+  lightboxImg.style.opacity = 0; // iniciar transición
   if(index < galleryData.length) lightboxImg.src = galleryData[index].url;
-  else lightboxImg.src = URL.createObjectURL(pendingPhotos[index].file);
+  else lightboxImg.src = URL.createObjectURL(pendingPhotos[index - galleryData.length].file);
   lightboxOverlay.style.display="flex";
+  setTimeout(()=> lightboxOverlay.classList.add("show"), 10);
 }
-function closeLightbox(){ lightboxOverlay.style.display="none"; }
+function closeLightbox(){ 
+  lightboxOverlay.classList.remove("show");
+  setTimeout(()=> lightboxOverlay.style.display="none", 300);
+}
 function prevPhoto(){ 
   currentIndex=(currentIndex-1+(galleryData.length+pendingPhotos.length))%(galleryData.length+pendingPhotos.length); 
   openLightbox(currentIndex); 
@@ -303,6 +345,9 @@ lightboxOverlay.addEventListener("touchend", e => {
   if(diff > 50) prevPhoto();
   else if(diff < -50) nextPhoto();
 });
+
+// Cargar fotos ya subidas al iniciar
+loadGalleryFromSupabase();
 </script>
 </body>
 </html>
