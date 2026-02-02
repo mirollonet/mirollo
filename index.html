@@ -19,7 +19,7 @@ body{
 }
 main{ max-width:420px; width:100%; }
 
-h1{ margin:0 0 4px 0; text-align:center; }
+h1{ margin:0 0 4px; text-align:center; }
 #counter{ text-align:center; margin-bottom:12px; }
 
 #controls{
@@ -39,7 +39,6 @@ button,label{
   cursor:pointer;
 }
 button:disabled{ opacity:.5; }
-
 input[type=file]{ display:none; }
 
 #grid{
@@ -55,6 +54,7 @@ input[type=file]{ display:none; }
   object-fit:cover;
   border-radius:6px;
 }
+
 .menu-btn{
   position:absolute;
   top:4px;
@@ -69,7 +69,11 @@ input[type=file]{ display:none; }
   text-align:center;
 }
 
-#loader{ display:none; text-align:center; margin-top:12px; }
+#loader{
+  display:none;
+  text-align:center;
+  margin-top:12px;
+}
 
 /* Lightbox */
 #lightbox{
@@ -158,21 +162,28 @@ input[type=file]{ display:none; }
 </main>
 
 <script>
+/* CONFIG */
 const MAX = 36;
 const ROLL = "TEST002";
 const BUCKET = "photos";
 
+/* SUPABASE */
 const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4";
 
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
 
+/* STATE */
 let gallery = [];
 let pending = [];
-let locked = false;
 let revealed = localStorage.getItem("roll_revealed") === "true";
+let locked = false;
 let actionIndex = null;
 
+/* ELEMENTS */
 const grid = document.getElementById("grid");
 const counter = document.getElementById("counter");
 const fileInput = document.getElementById("fileInput");
@@ -180,6 +191,7 @@ const fileLabel = document.getElementById("fileLabel");
 const revealBtn = document.getElementById("revealBtn");
 const loader = document.getElementById("loader");
 
+/* UI */
 function updateUI(){
   const total = gallery.length + pending.length;
   counter.innerText = `${total} / ${MAX} fotos`;
@@ -197,35 +209,38 @@ function updateUI(){
 function render(){
   grid.innerHTML = "";
   [...gallery, ...pending].forEach((p,i)=>{
-    const w = document.createElement("div");
-    w.className="thumb-wrap";
+    const wrap = document.createElement("div");
+    wrap.className = "thumb-wrap";
 
     const img = document.createElement("img");
     img.src = p.url;
-    img.className="thumb";
-    img.onclick=()=>openLightbox(i);
-
-    w.appendChild(img);
+    img.className = "thumb";
+    img.onclick = ()=>openLightbox(i);
+    wrap.appendChild(img);
 
     if(!revealed && pending.includes(p)){
-      const m=document.createElement("div");
-      m.className="menu-btn";
-      m.innerText="⋯";
-      m.onclick=(e)=>{ e.stopPropagation(); openSheet(i); };
-      w.appendChild(m);
+      const m = document.createElement("div");
+      m.className = "menu-btn";
+      m.innerText = "⋯";
+      m.onclick = e => {
+        e.stopPropagation();
+        openSheet(i);
+      };
+      wrap.appendChild(m);
     }
 
-    grid.appendChild(w);
+    grid.appendChild(wrap);
   });
 }
 
-fileInput.onchange=e=>{
-  const file=e.target.files[0];
+/* FILE INPUT */
+fileInput.onchange = e=>{
+  const file = e.target.files[0];
   if(!file) return;
 
   if(pending.some(p=>p.name===file.name && p.size===file.size)) return;
 
-  if(gallery.length+pending.length<MAX){
+  if(gallery.length + pending.length < MAX){
     pending.push({
       file,
       name:file.name,
@@ -233,68 +248,84 @@ fileInput.onchange=e=>{
       url:URL.createObjectURL(file)
     });
   }
-  fileInput.value="";
-  render(); updateUI();
+  fileInput.value = "";
+  render();
+  updateUI();
 };
 
-revealBtn.onclick=async()=>{
+/* REVELAR */
+revealBtn.onclick = async ()=>{
   if(locked || revealed) return;
-  locked=true;
-  loader.style.display="block";
+  locked = true;
+  loader.style.display = "block";
 
   for(const p of pending){
-    const path=`${ROLL}/${Date.now()}-${p.name}`;
-    await supabase.storage.from(BUCKET).upload(path,p.file);
-    const {data}=supabase.storage.from(BUCKET).getPublicUrl(path);
-    await supabase.from("photos_v2").insert({ roll_code:ROLL, url:data.publicUrl });
-    gallery.push({url:data.publicUrl});
+    const path = `${ROLL}/${Date.now()}-${p.name}`;
+    await supabaseClient.storage.from(BUCKET).upload(path, p.file);
+    const { data } = supabaseClient.storage.from(BUCKET).getPublicUrl(path);
+    await supabaseClient.from("photos_v2").insert({
+      roll_code: ROLL,
+      url: data.publicUrl
+    });
+    gallery.push({ url: data.publicUrl });
   }
 
-  pending=[];
-  revealed=true;
+  pending = [];
+  revealed = true;
   localStorage.setItem("roll_revealed","true");
-  loader.style.display="none";
-  locked=false;
-  render(); updateUI();
+  loader.style.display = "none";
+  locked = false;
+  render();
+  updateUI();
 };
 
+/* LOAD */
 async function load(){
-  const {data}=await supabase.from("photos_v2").select("url").eq("roll_code",ROLL);
-  gallery=data||[];
-  render(); updateUI();
+  const { data } = await supabaseClient
+    .from("photos_v2")
+    .select("url")
+    .eq("roll_code", ROLL);
+
+  gallery = data || [];
+  render();
+  updateUI();
 }
 
-/* Lightbox */
-let idx=0;
-const lb=document.getElementById("lightbox");
-const lbImg=document.getElementById("lightboxImg");
+/* LIGHTBOX */
+let idx = 0;
+const lb = document.getElementById("lightbox");
+const lbImg = document.getElementById("lightboxImg");
+
 function openLightbox(i){
-  idx=i;
-  lbImg.src=[...gallery,...pending][i].url;
-  lb.style.display="flex";
+  idx = i;
+  lbImg.src = [...gallery, ...pending][i].url;
+  lb.style.display = "flex";
 }
 function nav(d){
-  const all=[...gallery,...pending];
-  idx=(idx+d+all.length)%all.length;
-  lbImg.src=all[idx].url;
+  const all = [...gallery, ...pending];
+  idx = (idx + d + all.length) % all.length;
+  lbImg.src = all[idx].url;
 }
-document.querySelector(".close").onclick=()=>lb.style.display="none";
-document.querySelector(".prev").onclick=()=>nav(-1);
-document.querySelector(".next").onclick=()=>nav(1);
+document.querySelector(".close").onclick = ()=>lb.style.display="none";
+document.querySelector(".prev").onclick = ()=>nav(-1);
+document.querySelector(".next").onclick = ()=>nav(1);
 
-/* Action Sheet */
-const sheetBg=document.getElementById("sheet-bg");
-function openSheet(i){ actionIndex=i; sheetBg.style.display="block"; }
+/* ACTION SHEET */
+const sheetBg = document.getElementById("sheet-bg");
+function openSheet(i){ actionIndex = i; sheetBg.style.display="block"; }
 function closeSheet(){ sheetBg.style.display="none"; }
 
-sheetBg.onclick=closeSheet;
-document.getElementById("sheetCancel").onclick=closeSheet;
-document.getElementById("sheetView").onclick=()=>{
-  closeSheet(); openLightbox(actionIndex);
+sheetBg.onclick = closeSheet;
+document.getElementById("sheetCancel").onclick = closeSheet;
+document.getElementById("sheetView").onclick = ()=>{
+  closeSheet();
+  openLightbox(actionIndex);
 };
-document.getElementById("sheetDelete").onclick=()=>{
-  pending.splice(actionIndex-gallery.length,1);
-  closeSheet(); render(); updateUI();
+document.getElementById("sheetDelete").onclick = ()=>{
+  pending.splice(actionIndex - gallery.length, 1);
+  closeSheet();
+  render();
+  updateUI();
 };
 
 load();
