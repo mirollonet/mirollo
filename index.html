@@ -8,15 +8,64 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; text-align: center; padding: 6vh 16px; }
-    h1 { font-size: 42px; margin-bottom: 8px; }
-    #counter { margin-bottom: 16px; font-size: 16px; opacity: 0.8; }
-    input[type="file"] { margin-bottom: 12px; }
-    button { padding: 14px 30px; font-size: 18px; border-radius: 12px; border: 1px solid black; background: white; cursor: pointer; }
-    button:disabled { opacity: 0.4; cursor: not-allowed; }
-    .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; margin-top: 20px; }
-    .gallery img { width: 100%; height: 90px; object-fit: cover; border-radius: 6px; }
-    label { display: block; margin-bottom: 6px; font-weight: 500; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      text-align: center;
+      padding: 6vh 16px;
+    }
+
+    h1 {
+      font-size: 42px;
+      margin-bottom: 8px;
+    }
+
+    #counter {
+      margin-bottom: 16px;
+      font-size: 16px;
+      opacity: 0.8;
+    }
+
+    label#fileLabel {
+      display: block;
+      text-align: center;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    input[type="file"] {
+      margin-bottom: 12px;
+      display: inline-block;
+      text-align: center;
+    }
+
+    button {
+      padding: 14px 30px;
+      font-size: 18px;
+      border-radius: 12px;
+      border: 1px solid black;
+      background: white;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* --- Gallery --- */
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .gallery img {
+      width: 100%;
+      height: 90px;
+      object-fit: cover;
+      border-radius: 6px;
+    }
 
     /* Loader tipo cámara */
     #loader {
@@ -43,12 +92,14 @@
 </head>
 <body>
 
-<h1>MI ROLLO</h1>
-<div id="counter">0/36</div>
+<h1>Mi Rollo</h1>
+<div id="counter">0 / 36 fotos</div>
 
-<label for="fileInput" id="fileLabel">Seleccionar fotos</label>
-<input type="file" id="fileInput" multiple accept="image/*" />
-<br />
+<div style="margin-bottom: 12px;">
+  <label for="fileInput" id="fileLabel">Elegir fotos</label>
+  <input type="file" id="fileInput" multiple accept="image/*" />
+</div>
+
 <button id="uploadBtn">Revelar Fotos</button>
 
 <div id="loader">
@@ -63,7 +114,7 @@
 
 <script>
   const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co";
-  const SUPABASE_ANON_KEY ="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4";
   const ROLL_CODE = "TEST002";
   const MAX_PHOTOS = 36;
   const BUCKET = "mirollo";
@@ -99,7 +150,7 @@
 
     const remainingSlots = MAX_PHOTOS - data.length;
     if (remainingSlots > 0) {
-      fileLabel.innerText = `Seleccionar hasta ${remainingSlots} foto${remainingSlots > 1 ? "s" : ""}`;
+      fileLabel.innerText = `Elegir hasta ${remainingSlots} foto${remainingSlots > 1 ? "s" : ""}`;
     } else {
       fileLabel.innerText = "Rollo completado";
     }
