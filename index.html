@@ -453,8 +453,8 @@ loader.style.display =
 
 for(const p of pending){
 
-const path =
-`${ROLL}/${Date.now()}-${p.name}`
+const fileId = crypto.randomUUID()
+const path = `${ROLL}/${fileId}.jpg`
 
 
 await supabaseClient
