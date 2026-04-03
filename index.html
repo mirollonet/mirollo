@@ -14,25 +14,14 @@ font-family:system-ui,-apple-system;
 margin:0;
 padding:16px;
 background:#fff;
-color:#000;
 display:flex;
 justify-content:center;
 }
 
-main{
-max-width:420px;
-width:100%;
-}
+main{ max-width:420px; width:100%; }
 
-h1{
-margin:0 0 4px 0;
-text-align:center;
-}
-
-#counter{
-text-align:center;
-margin-bottom:12px;
-}
+h1{ text-align:center; margin:0 0 4px; }
+#counter{ text-align:center; margin-bottom:12px; }
 
 #controls{
 display:flex;
@@ -47,18 +36,11 @@ border-radius:10px;
 border:none;
 background:#000;
 color:#fff;
-font-size:14px;
 cursor:pointer;
 }
+button:disabled{ opacity:.5; }
 
-button:disabled{
-opacity:.5;
-cursor:default;
-}
-
-input[type=file]{
-display:none;
-}
+input[type=file]{ display:none; }
 
 #grid{
 display:grid;
@@ -68,6 +50,7 @@ gap:6px;
 
 .thumb-wrap{
 position:relative;
+overflow:hidden;
 }
 
 .thumb{
@@ -75,6 +58,11 @@ width:100%;
 aspect-ratio:1/1;
 object-fit:cover;
 border-radius:6px;
+transition:transform .2s ease;
+}
+
+.thumb:active{
+transform:scale(0.96);
 }
 
 .menu-btn{
@@ -86,18 +74,19 @@ color:#fff;
 border-radius:50%;
 width:22px;
 height:22px;
-font-size:16px;
-line-height:20px;
 text-align:center;
 cursor:pointer;
 }
 
+/* loader */
 #loader{
 display:none;
 text-align:center;
 margin-top:12px;
+font-size:14px;
 }
 
+/* Lightbox */
 #lightbox{
 position:fixed;
 inset:0;
@@ -111,6 +100,7 @@ z-index:1000;
 #lightbox img{
 max-width:100%;
 max-height:100%;
+transition:transform .2s ease;
 }
 
 .nav,.close{
@@ -121,28 +111,14 @@ padding:16px;
 cursor:pointer;
 }
 
-.prev{
-left:0;
-top:50%;
-transform:translateY(-50%);
-}
-
-.next{
-right:0;
-top:50%;
-transform:translateY(-50%);
-}
-
-.close{
-top:0;
-right:0;
-}
+.prev{ left:0; top:50%; transform:translateY(-50%); }
+.next{ right:0; top:50%; transform:translateY(-50%); }
+.close{ top:0; right:0; }
 
 </style>
 </head>
 
 <body>
-
 <main>
 
 <h1>Mi Rollo</h1>
@@ -160,7 +136,7 @@ Revelar fotos
 </div>
 
 <div id="grid"></div>
-<div id="loader">Revelando…</div>
+<div id="loader">Revelando rollo…</div>
 
 <div id="lightbox">
 <div class="close">✕</div>
@@ -173,27 +149,23 @@ Revelar fotos
 
 <script>
 
-const SUPABASE_URL =
-"https://dzerpmnksarnywqpbgam.supabase.co"
+/* CONFIG */
+const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co"
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4
+"
 
-const SUPABASE_ANON_KEY =
-"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4"
-
-
-const db = supabase.createClient(
-SUPABASE_URL,
-SUPABASE_ANON_KEY
-)
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 const MAX = 36
 const ROLL = "TEST002"
 const BUCKET = "mirollo"
 
+/* STATE */
 let gallery = []
 let pending = []
-let revealed = false
 let locked = false
 
+/* ELEMENTOS */
 const grid = document.getElementById("grid")
 const counter = document.getElementById("counter")
 const fileInput = document.getElementById("fileInput")
@@ -201,205 +173,177 @@ const fileLabel = document.getElementById("fileLabel")
 const revealBtn = document.getElementById("revealBtn")
 const loader = document.getElementById("loader")
 
+/* UI */
 function updateUI(){
-
 const total = gallery.length + pending.length
-
-counter.innerText =
-`${total} / ${MAX} fotos`
-
+counter.innerText = `${total} / ${MAX} fotos`
 revealBtn.disabled = total !== MAX
-
 }
 
+/* GRID */
 function render(){
-
 grid.innerHTML = ""
-
 const all = [...gallery,...pending]
 
 all.forEach((p,i)=>{
 
-const wrap =
-document.createElement("div")
-
+const wrap = document.createElement("div")
 wrap.className="thumb-wrap"
 
-const img =
-document.createElement("img")
-
+const img = document.createElement("img")
 img.src = p.url
 img.className="thumb"
-
 img.onclick = ()=>openLightbox(i)
 
 wrap.appendChild(img)
 
+/* menú solo en pendientes */
 if(i >= gallery.length){
 
-const btn =
-document.createElement("div")
-
+const btn = document.createElement("div")
 btn.className="menu-btn"
 btn.innerText="⋯"
 
 btn.onclick=(e)=>{
-
 e.stopPropagation()
-
-pending.splice(
-i - gallery.length,
-1
-)
-
+pending.splice(i-gallery.length,1)
 render()
 updateUI()
-
 }
 
 wrap.appendChild(btn)
-
 }
 
 grid.appendChild(wrap)
 
 })
-
 }
 
-fileInput.onchange = e => {
-
-const files =
-Array.from(e.target.files)
+/* FILE INPUT */
+fileInput.onchange = e=>{
+const files = Array.from(e.target.files)
 
 files.forEach(file=>{
 
-if(
-gallery.length +
-pending.length
-< MAX
-){
+const exists = pending.some(p=>p.file?.name===file.name && p.file?.size===file.size)
 
+if(!exists && gallery.length+pending.length<MAX){
 pending.push({
-
 file:file,
 url:URL.createObjectURL(file)
-
 })
-
 }
 
 })
 
 fileInput.value=""
-
 render()
 updateUI()
-
 }
 
+/* REVELAR */
 revealBtn.onclick = async ()=>{
 
-if(locked) return
+const total = gallery.length + pending.length
 
-locked = true
+/* ya completo */
+if(total===MAX && pending.length===0){
+revealBtn.innerText="Rollo revelado"
+revealBtn.disabled=true
+fileLabel.style.display="none"
+return
+}
+
+if(locked || pending.length===0) return
+
+locked=true
 loader.style.display="block"
 
 for(const p of pending){
 
-const path =
-`${ROLL}/${crypto.randomUUID()}.jpg`
+const path=`${ROLL}/${crypto.randomUUID()}.jpg`
 
-await db.storage
-.from(BUCKET)
-.upload(path,p.file)
+await db.storage.from(BUCKET).upload(path,p.file)
 
-const {data} =
-db.storage
-.from(BUCKET)
-.getPublicUrl(path)
+const {data}=db.storage.from(BUCKET).getPublicUrl(path)
 
-await db
-.from("photos_v2")
-.insert({
-
+await db.from("photos_v2").insert({
 roll_code:ROLL,
 url:data.publicUrl
-
 })
 
-gallery.push({
-url:data.publicUrl
-})
+gallery.push({url:data.publicUrl})
 
 }
 
 pending=[]
-
 loader.style.display="none"
+
+revealBtn.innerText="Rollo revelado"
+revealBtn.disabled=true
+fileLabel.style.display="none"
 
 render()
 updateUI()
-
 }
 
+/* LOAD */
 async function load(){
-
-const {data} =
-await db
+const {data}=await db
 .from("photos_v2")
 .select("url")
 .eq("roll_code",ROLL)
 
-gallery = data || []
-
+gallery=data||[]
 render()
 updateUI()
-
 }
 
+/* LIGHTBOX */
 let idx=0
-
-const lb =
-document.getElementById("lightbox")
-
-const lbImg =
-document.getElementById("lightboxImg")
+const lb=document.getElementById("lightbox")
+const lbImg=document.getElementById("lightboxImg")
 
 function openLightbox(i){
-
 idx=i
-
-lbImg.src =
-[...gallery,...pending][i].url
-
+lbImg.src=[...gallery,...pending][i].url
 lb.style.display="flex"
-
 }
 
 function nav(d){
-
-const all =
-[...gallery,...pending]
-
-idx =
-(idx + d + all.length)
-% all.length
-
-lbImg.src =
-all[idx].url
-
+const all=[...gallery,...pending]
+idx=(idx+d+all.length)%all.length
+lbImg.src=all[idx].url
 }
 
-document.querySelector(".close")
-.onclick=()=>lb.style.display="none"
+document.querySelector(".close").onclick=()=>lb.style.display="none"
+document.querySelector(".prev").onclick=()=>nav(-1)
+document.querySelector(".next").onclick=()=>nav(1)
 
-document.querySelector(".prev")
-.onclick=()=>nav(-1)
+/* SWIPE tipo iPhone */
+let startX=0, startY=0
 
-document.querySelector(".next")
-.onclick=()=>nav(1)
+lb.addEventListener("touchstart", e=>{
+startX=e.touches[0].clientX
+startY=e.touches[0].clientY
+})
 
+lb.addEventListener("touchend", e=>{
+const dx=e.changedTouches[0].clientX-startX
+const dy=e.changedTouches[0].clientY-startY
+
+if(dy>60){
+lb.style.display="none"
+}
+else if(dx>50){
+nav(-1)
+}
+else if(dx<-50){
+nav(1)
+}
+})
+
+/* INIT */
 load()
 
 </script>
