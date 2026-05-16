@@ -505,6 +505,8 @@ revealBtn.onclick = async () => {
     if (closeErr) throw closeErr
 
     rollData.is_closed = true
+    rollData.title = title
+    rollTitle.textContent = title
     pending = []
 
   } catch (err) {
