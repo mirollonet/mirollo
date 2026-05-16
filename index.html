@@ -220,7 +220,33 @@ input[type=file] { display: none; }
 
 .error-msg.visible { display: block; }
 
-/* CLOSED STATE */
+/* TITLE INPUT */
+.title-input-wrap {
+  display: none;
+  width: 100%;
+  max-width: 420px;
+  padding: 0 20px;
+  margin-bottom: 12px;
+}
+
+.title-input-wrap.visible { display: block; }
+
+#titleInput {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1.5px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  font-family: 'DM Serif Display', serif;
+  font-size: 16px;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+#titleInput::placeholder { color: var(--muted); }
+
+
 .closed-badge {
   display: none;
   font-size: 10px;
@@ -308,6 +334,10 @@ input[type=file] { display: none; }
   <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
 </div>
 
+<div class="title-input-wrap" id="titleWrap">
+  <input type="text" id="titleInput" placeholder="Nombre de tu rollo" maxlength="60">
+</div>
+
 <div class="controls" id="controls">
   <label class="btn-choose" id="fileLabel">
     Elegir fotos
@@ -358,7 +388,8 @@ const fileLabel   = document.getElementById("fileLabel")
 const revealBtn   = document.getElementById("revealBtn")
 const loader      = document.getElementById("loader")
 const errorMsg    = document.getElementById("errorMsg")
-const rollTitle   = document.getElementById("rollTitle")
+const titleWrap  = document.getElementById("titleWrap")
+const titleInput = document.getElementById("titleInput")
 const closedBadge = document.getElementById("closedBadge")
 const controls    = document.getElementById("controls")
 
@@ -380,10 +411,13 @@ function updateUI() {
     revealBtn.textContent = "Rollo revelado"
     revealBtn.disabled    = true
     fileLabel.style.display = "none"
+    titleWrap.classList.remove("visible")
     closedBadge.classList.add("visible")
     return
   }
 
+  const isFull = total === MAX && pending.length > 0
+  titleWrap.classList.toggle("visible", isFull)
   revealBtn.disabled = total !== MAX || pending.length === 0
 }
 
