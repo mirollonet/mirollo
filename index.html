@@ -498,12 +498,13 @@ revealBtn.onclick = async () => {
     }
 
     /* cerrar el rollo en DB */
-    const { error: closeErr } = await db
-      .from("rolls")
-      .update({ is_closed: true })
-      .eq("code", ROLL)
+      const title = titleInput.value.trim() || "Mi Rollo"
+const { error: closeErr } = await db
+  .from("rolls")
+  .update({ is_closed: true, title })
+  .eq("code", ROLL)
     if (closeErr) throw closeErr
-
+    
     rollData.is_closed = true
     rollData.title = title
     rollTitle.textContent = title
