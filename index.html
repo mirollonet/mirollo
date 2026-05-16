@@ -541,7 +541,7 @@ async function load() {
   }
 
   rollData = roll
-  rollTitle.textContent = roll.title || ROLL
+  rollTitle.textContent = roll.title || "Nombre del Rollo"
 
   /* cargar fotos */
   const { data: photos } = await db
