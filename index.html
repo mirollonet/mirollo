@@ -5,348 +5,557 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mi Rollo</title>
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital@0;1&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-body{
-font-family:system-ui,-apple-system;
-margin:0;
-padding:16px;
-background:#fff;
-display:flex;
-justify-content:center;
+:root {
+  --bg: #f5f0e8;
+  --ink: #1a1410;
+  --muted: #8a7f72;
+  --grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
 }
 
-main{ max-width:420px; width:100%; }
-
-h1{ text-align:center; margin:0 0 4px; }
-#counter{ text-align:center; margin-bottom:12px; }
-
-#controls{
-display:flex;
-justify-content:center;
-gap:12px;
-margin-bottom:16px;
+body {
+  font-family: 'DM Mono', monospace;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-button,label{
-padding:10px 16px;
-border-radius:10px;
-border:none;
-background:#000;
-color:#fff;
-cursor:pointer;
-}
-button:disabled{ opacity:.5; }
-
-input[type=file]{ display:none; }
-
-#grid{
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:6px;
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: var(--grain);
+  pointer-events: none;
+  z-index: 999;
+  opacity: 0.6;
 }
 
-.thumb-wrap{
-position:relative;
-overflow:hidden;
+/* HEADER */
+header {
+  width: 100%;
+  max-width: 420px;
+  padding: 32px 20px 0;
+  text-align: center;
 }
 
-.thumb{
-width:100%;
-aspect-ratio:1/1;
-object-fit:cover;
-border-radius:6px;
-transition:transform .2s ease;
+.logo {
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  font-size: 13px;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 8px;
 }
 
-.thumb:active{
-transform:scale(0.96);
+.roll-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 28px;
+  line-height: 1.1;
+  margin-bottom: 4px;
+  min-height: 34px;
 }
 
-.menu-btn{
-position:absolute;
-top:4px;
-right:4px;
-background:rgba(0,0,0,.6);
-color:#fff;
-border-radius:50%;
-width:22px;
-height:22px;
-text-align:center;
-cursor:pointer;
+.counter {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  margin-bottom: 24px;
 }
 
-/* loader */
-#loader{
-display:none;
-text-align:center;
-margin-top:12px;
-font-size:14px;
+/* PROGRESS BAR */
+.progress-track {
+  width: 100%;
+  max-width: 420px;
+  padding: 0 20px;
+  margin-bottom: 20px;
 }
 
-/* Lightbox */
-#lightbox{
-position:fixed;
-inset:0;
-background:rgba(0,0,0,.95);
-display:none;
-align-items:center;
-justify-content:center;
-z-index:1000;
+.progress-bar {
+  height: 2px;
+  background: rgba(26,20,16,0.12);
+  border-radius: 2px;
+  overflow: hidden;
 }
 
-#lightbox img{
-max-width:100%;
-max-height:100%;
-transition:transform .2s ease;
+.progress-fill {
+  height: 100%;
+  background: var(--ink);
+  border-radius: 2px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 0%;
 }
 
-.nav,.close{
-position:absolute;
-color:#fff;
-font-size:28px;
-padding:16px;
-cursor:pointer;
+/* CONTROLS */
+.controls {
+  display: flex;
+  gap: 8px;
+  padding: 0 20px;
+  width: 100%;
+  max-width: 420px;
+  margin-bottom: 20px;
 }
 
-.prev{ left:0; top:50%; transform:translateY(-50%); }
-.next{ right:0; top:50%; transform:translateY(-50%); }
-.close{ top:0; right:0; }
+.btn-choose {
+  flex: 1;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1.5px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-choose:hover { background: var(--ink); color: var(--bg); }
+
+.btn-reveal {
+  flex: 1;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: none;
+  background: var(--ink);
+  color: var(--bg);
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-reveal:disabled { opacity: 0.3; cursor: default; }
+
+input[type=file] { display: none; }
+
+/* LOADER */
+.loader {
+  display: none;
+  text-align: center;
+  padding: 0 20px 16px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  width: 100%;
+  max-width: 420px;
+}
+
+.loader.visible { display: block; }
+
+/* GRID */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  width: 100%;
+  max-width: 420px;
+  padding: 0 20px;
+}
+
+.thumb-wrap {
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+  background: rgba(26,20,16,0.06);
+}
+
+.thumb {
+  width: 100%;
+  aspect-ratio: 1/1;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.2s ease, opacity 0.3s ease;
+  cursor: pointer;
+}
+
+.thumb:active { transform: scale(0.96); }
+
+.thumb.pending { opacity: 0.7; }
+
+.menu-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  line-height: 1;
+}
+
+/* ERROR */
+.error-msg {
+  display: none;
+  padding: 0 20px;
+  width: 100%;
+  max-width: 420px;
+  font-size: 11px;
+  color: #c0392b;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.error-msg.visible { display: block; }
+
+/* CLOSED STATE */
+.closed-badge {
+  display: none;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  padding: 3px 8px;
+  margin: 0 auto 20px;
+}
+
+.closed-badge.visible { display: inline-block; }
+
+/* LIGHTBOX */
+#lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(20,16,12,0.97);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+#lightbox.open { display: flex; }
+
+#lightboxImg {
+  max-width: 100%;
+  max-height: 100dvh;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.lb-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  color: rgba(255,255,255,0.7);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 8px;
+  line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lb-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255,255,255,0.5);
+  font-size: 28px;
+  padding: 20px 12px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lb-prev { left: 0; }
+.lb-next { right: 0; }
+
+/* REVEAL ANIMATION */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.thumb.revealed {
+  animation: fadeIn 0.4s ease forwards;
+}
 
 </style>
 </head>
 
 <body>
-<main>
 
-<h1>Mi Rollo</h1>
-<div id="counter">0 / 36 fotos</div>
+<header>
+  <div class="logo">Mi Rollo</div>
+  <div class="roll-title" id="rollTitle">—</div>
+  <div class="closed-badge" id="closedBadge">Revelado</div>
+  <div class="counter" id="counter">— / — fotos</div>
+</header>
 
-<div id="controls">
-<label id="fileLabel">
-Elegir fotos
-<input type="file" id="fileInput" accept="image/*" multiple>
-</label>
-
-<button id="revealBtn" disabled>
-Revelar fotos
-</button>
+<div class="progress-track">
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
 </div>
 
-<div id="grid"></div>
-<div id="loader">Revelando rollo…</div>
+<div class="controls" id="controls">
+  <label class="btn-choose" id="fileLabel">
+    Elegir fotos
+    <input type="file" id="fileInput" accept="image/*" multiple>
+  </label>
+  <button class="btn-reveal" id="revealBtn" disabled>Revelar</button>
+</div>
+
+<div class="loader" id="loader">Revelando rollo…</div>
+<div class="error-msg" id="errorMsg"></div>
+
+<div class="grid" id="grid"></div>
 
 <div id="lightbox">
-<div class="close">✕</div>
-<div class="nav prev">‹</div>
-<img id="lightboxImg">
-<div class="nav next">›</div>
+  <div class="lb-close">✕</div>
+  <div class="lb-nav lb-prev">‹</div>
+  <img id="lightboxImg" alt="">
+  <div class="lb-nav lb-next">›</div>
 </div>
 
-</main>
-
 <script>
-
-/* CONFIG */
-const SUPABASE_URL = "https://dzerpmnksarnywqpbgam.supabase.co"
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4
-"
+/* ── CONFIG ── */
+const SUPABASE_URL      = "https://dzerpmnksarnywqpbgam.supabase.co"
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4"
+const BUCKET            = "mirollo"
 
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-const MAX = 36
-const ROLL = "TEST002"
-const BUCKET = "mirollo"
+/* ── ROLL CODE desde URL ── */
+function getRollCode() {
+  const params = new URLSearchParams(window.location.search)
+  return params.get("roll") || "TEST002"
+}
+const ROLL = getRollCode()
 
-/* STATE */
-let gallery = []
-let pending = []
-let locked = false
+/* ── STATE ── */
+let gallery  = []   // fotos ya en Supabase
+let pending  = []   // fotos elegidas, aún no subidas
+let rollData = null // datos del rollo desde tabla rolls
+let locked   = false
 
-/* ELEMENTOS */
-const grid = document.getElementById("grid")
-const counter = document.getElementById("counter")
-const fileInput = document.getElementById("fileInput")
-const fileLabel = document.getElementById("fileLabel")
-const revealBtn = document.getElementById("revealBtn")
-const loader = document.getElementById("loader")
+/* ── ELEMENTOS ── */
+const grid        = document.getElementById("grid")
+const counter     = document.getElementById("counter")
+const progressFill= document.getElementById("progressFill")
+const fileInput   = document.getElementById("fileInput")
+const fileLabel   = document.getElementById("fileLabel")
+const revealBtn   = document.getElementById("revealBtn")
+const loader      = document.getElementById("loader")
+const errorMsg    = document.getElementById("errorMsg")
+const rollTitle   = document.getElementById("rollTitle")
+const closedBadge = document.getElementById("closedBadge")
+const controls    = document.getElementById("controls")
 
-/* UI */
-function updateUI(){
-const total = gallery.length + pending.length
-counter.innerText = `${total} / ${MAX} fotos`
-revealBtn.disabled = total !== MAX
+/* ── UI ── */
+function showError(msg) {
+  errorMsg.textContent = msg
+  errorMsg.classList.add("visible")
+  setTimeout(() => errorMsg.classList.remove("visible"), 4000)
 }
 
-/* GRID */
-function render(){
-grid.innerHTML = ""
-const all = [...gallery,...pending]
+function updateUI() {
+  if (!rollData) return
+  const MAX   = rollData.max_photos
+  const total = gallery.length + pending.length
+  counter.textContent = `${total} / ${MAX} fotos`
+  progressFill.style.width = `${Math.min(100, (total / MAX) * 100)}%`
 
-all.forEach((p,i)=>{
+  if (rollData.is_closed) {
+    revealBtn.textContent = "Rollo revelado"
+    revealBtn.disabled    = true
+    fileLabel.style.display = "none"
+    closedBadge.classList.add("visible")
+    return
+  }
 
-const wrap = document.createElement("div")
-wrap.className="thumb-wrap"
-
-const img = document.createElement("img")
-img.src = p.url
-img.className="thumb"
-img.onclick = ()=>openLightbox(i)
-
-wrap.appendChild(img)
-
-/* menú solo en pendientes */
-if(i >= gallery.length){
-
-const btn = document.createElement("div")
-btn.className="menu-btn"
-btn.innerText="⋯"
-
-btn.onclick=(e)=>{
-e.stopPropagation()
-pending.splice(i-gallery.length,1)
-render()
-updateUI()
+  revealBtn.disabled = total !== MAX || pending.length === 0
 }
 
-wrap.appendChild(btn)
+/* ── GRID ── */
+function render() {
+  grid.innerHTML = ""
+  const all = [...gallery, ...pending]
+
+  all.forEach((p, i) => {
+    const wrap = document.createElement("div")
+    wrap.className = "thumb-wrap"
+
+    const img = document.createElement("img")
+    img.src       = p.url
+    img.className = "thumb" + (i >= gallery.length ? " pending" : "")
+    img.onclick   = () => openLightbox(i)
+    wrap.appendChild(img)
+
+    if (i >= gallery.length) {
+      const btn = document.createElement("div")
+      btn.className  = "menu-btn"
+      btn.textContent = "✕"
+      btn.onclick = (e) => {
+        e.stopPropagation()
+        pending.splice(i - gallery.length, 1)
+        render()
+        updateUI()
+      }
+      wrap.appendChild(btn)
+    }
+
+    grid.appendChild(wrap)
+  })
 }
 
-grid.appendChild(wrap)
+/* ── FILE INPUT ── */
+fileInput.onchange = (e) => {
+  const MAX   = rollData?.max_photos || 36
+  const files = Array.from(e.target.files)
 
+  files.forEach(file => {
+    const exists = pending.some(p => p.file?.name === file.name && p.file?.size === file.size)
+    if (!exists && gallery.length + pending.length < MAX) {
+      pending.push({ file, url: URL.createObjectURL(file) })
+    }
+  })
+
+  fileInput.value = ""
+  render()
+  updateUI()
+}
+
+/* ── REVELAR ── */
+revealBtn.onclick = async () => {
+  if (locked || pending.length === 0 || rollData?.is_closed) return
+
+  locked = true
+  loader.classList.add("visible")
+  revealBtn.disabled = true
+
+  try {
+    for (const p of pending) {
+      const ext  = p.file.name.split(".").pop() || "jpg"
+      const path = `${ROLL}/${crypto.randomUUID()}.${ext}`
+
+      const { error: upErr } = await db.storage.from(BUCKET).upload(path, p.file)
+      if (upErr) throw upErr
+
+      const { data } = db.storage.from(BUCKET).getPublicUrl(path)
+
+      const { error: insErr } = await db.from("photos_v2").insert({
+        roll_code: ROLL,
+        url: data.publicUrl
+      })
+      if (insErr) throw insErr
+
+      gallery.push({ url: data.publicUrl })
+    }
+
+    /* cerrar el rollo en DB */
+    const { error: closeErr } = await db
+      .from("rolls")
+      .update({ is_closed: true })
+      .eq("code", ROLL)
+    if (closeErr) throw closeErr
+
+    rollData.is_closed = true
+    pending = []
+
+  } catch (err) {
+    showError("Error al revelar. Intentá de nuevo.")
+    console.error(err)
+    locked = false
+  } finally {
+    loader.classList.remove("visible")
+  }
+
+  render()
+  updateUI()
+}
+
+/* ── LOAD ── */
+async function load() {
+  /* cargar datos del rollo */
+  const { data: roll, error: rollErr } = await db
+    .from("rolls")
+    .select("*")
+    .eq("code", ROLL)
+    .single()
+
+  if (rollErr || !roll) {
+    rollTitle.textContent  = "Rollo no encontrado"
+    counter.textContent    = ""
+    controls.style.display = "none"
+    return
+  }
+
+  rollData = roll
+  rollTitle.textContent = roll.title || ROLL
+
+  /* cargar fotos */
+  const { data: photos } = await db
+    .from("photos_v2")
+    .select("url")
+    .eq("roll_code", ROLL)
+    .order("created_at", { ascending: true })
+
+  gallery = photos || []
+
+  render()
+  updateUI()
+}
+
+/* ── LIGHTBOX ── */
+let lbIdx = 0
+const lb    = document.getElementById("lightbox")
+const lbImg = document.getElementById("lightboxImg")
+
+function openLightbox(i) {
+  lbIdx   = i
+  lbImg.src = [...gallery, ...pending][i].url
+  lb.classList.add("open")
+}
+
+function lbNav(d) {
+  const all = [...gallery, ...pending]
+  lbIdx     = (lbIdx + d + all.length) % all.length
+  lbImg.src = all[lbIdx].url
+}
+
+document.querySelector(".lb-close").onclick = () => lb.classList.remove("open")
+document.querySelector(".lb-prev").onclick  = () => lbNav(-1)
+document.querySelector(".lb-next").onclick  = () => lbNav(1)
+
+let touchStartX = 0, touchStartY = 0
+
+lb.addEventListener("touchstart", e => {
+  touchStartX = e.touches[0].clientX
+  touchStartY = e.touches[0].clientY
+}, { passive: true })
+
+lb.addEventListener("touchend", e => {
+  const dx = e.changedTouches[0].clientX - touchStartX
+  const dy = e.changedTouches[0].clientY - touchStartY
+  if (Math.abs(dy) > 60 && Math.abs(dy) > Math.abs(dx)) {
+    lb.classList.remove("open")
+  } else if (dx > 50)  { lbNav(-1) }
+  else if (dx < -50) { lbNav(1) }
 })
-}
 
-/* FILE INPUT */
-fileInput.onchange = e=>{
-const files = Array.from(e.target.files)
-
-files.forEach(file=>{
-
-const exists = pending.some(p=>p.file?.name===file.name && p.file?.size===file.size)
-
-if(!exists && gallery.length+pending.length<MAX){
-pending.push({
-file:file,
-url:URL.createObjectURL(file)
-})
-}
-
-})
-
-fileInput.value=""
-render()
-updateUI()
-}
-
-/* REVELAR */
-revealBtn.onclick = async ()=>{
-
-const total = gallery.length + pending.length
-
-/* ya completo */
-if(total===MAX && pending.length===0){
-revealBtn.innerText="Rollo revelado"
-revealBtn.disabled=true
-fileLabel.style.display="none"
-return
-}
-
-if(locked || pending.length===0) return
-
-locked=true
-loader.style.display="block"
-
-for(const p of pending){
-
-const path=`${ROLL}/${crypto.randomUUID()}.jpg`
-
-await db.storage.from(BUCKET).upload(path,p.file)
-
-const {data}=db.storage.from(BUCKET).getPublicUrl(path)
-
-await db.from("photos_v2").insert({
-roll_code:ROLL,
-url:data.publicUrl
-})
-
-gallery.push({url:data.publicUrl})
-
-}
-
-pending=[]
-loader.style.display="none"
-
-revealBtn.innerText="Rollo revelado"
-revealBtn.disabled=true
-fileLabel.style.display="none"
-
-render()
-updateUI()
-}
-
-/* LOAD */
-async function load(){
-const {data}=await db
-.from("photos_v2")
-.select("url")
-.eq("roll_code",ROLL)
-
-gallery=data||[]
-render()
-updateUI()
-}
-
-/* LIGHTBOX */
-let idx=0
-const lb=document.getElementById("lightbox")
-const lbImg=document.getElementById("lightboxImg")
-
-function openLightbox(i){
-idx=i
-lbImg.src=[...gallery,...pending][i].url
-lb.style.display="flex"
-}
-
-function nav(d){
-const all=[...gallery,...pending]
-idx=(idx+d+all.length)%all.length
-lbImg.src=all[idx].url
-}
-
-document.querySelector(".close").onclick=()=>lb.style.display="none"
-document.querySelector(".prev").onclick=()=>nav(-1)
-document.querySelector(".next").onclick=()=>nav(1)
-
-/* SWIPE tipo iPhone */
-let startX=0, startY=0
-
-lb.addEventListener("touchstart", e=>{
-startX=e.touches[0].clientX
-startY=e.touches[0].clientY
-})
-
-lb.addEventListener("touchend", e=>{
-const dx=e.changedTouches[0].clientX-startX
-const dy=e.changedTouches[0].clientY-startY
-
-if(dy>60){
-lb.style.display="none"
-}
-else if(dx>50){
-nav(-1)
-}
-else if(dx<-50){
-nav(1)
-}
-})
-
-/* INIT */
+/* ── INIT ── */
 load()
-
 </script>
-
 </body>
 </html>
