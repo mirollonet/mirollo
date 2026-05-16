@@ -351,6 +351,8 @@ input[type=file] { display: none; }
 
 <div class="grid" id="grid"></div>
 
+<footer>© 2026 Mi Rollo</footer>
+
 <div id="lightbox">
   <div class="lb-close">✕</div>
   <div class="lb-nav lb-prev">‹</div>
@@ -497,16 +499,16 @@ revealBtn.onclick = async () => {
       gallery.push({ url: data.publicUrl })
     }
 
-    /* cerrar el rollo en DB */
-      const title = titleInput.value.trim() || "Mi Rollo"
-const { error: closeErr } = await db
-  .from("rolls")
-  .update({ is_closed: true, title })
-  .eq("code", ROLL)
+    /* cerrar el rollo en DB con título */
+    const title = titleInput.value.trim() || "Mi Rollo"
+    const { error: closeErr } = await db
+      .from("rolls")
+      .update({ is_closed: true, title })
+      .eq("code", ROLL)
     if (closeErr) throw closeErr
-    
+
     rollData.is_closed = true
-    rollData.title = title
+    rollData.title     = title
     rollTitle.textContent = title
     pending = []
 
@@ -539,8 +541,7 @@ async function load() {
   }
 
   rollData = roll
-  rollTitle.textContent = roll.title || "Nombre del Rollo"
-
+  rollTitle.textContent = roll.title || ROLL
 
   /* cargar fotos */
   const { data: photos } = await db
