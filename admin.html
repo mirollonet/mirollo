@@ -1,0 +1,376 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi Rollo — Admin</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital@0;1&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f5f0e8;
+  --ink: #1a1410;
+  --muted: #8a7f72;
+}
+
+body {
+  font-family: 'DM Mono', monospace;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.logo {
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  font-size: 13px;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.card {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+label {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  display: block;
+}
+
+input, select {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1.5px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  font-family: 'DM Mono', monospace;
+  font-size: 15px;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+input::placeholder { color: var(--muted); }
+
+.btn {
+  width: 100%;
+  padding: 13px;
+  border-radius: 8px;
+  border: none;
+  background: var(--ink);
+  color: var(--bg);
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.btn:disabled { opacity: 0.4; cursor: default; }
+
+/* LOGIN */
+#loginScreen { width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 12px; }
+
+/* RESULT */
+#result {
+  display: none;
+  margin-top: 24px;
+  width: 100%;
+  max-width: 360px;
+  border: 1.5px solid var(--ink);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+#result.visible { display: block; }
+
+.result-label {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.result-code {
+  font-family: 'DM Serif Display', serif;
+  font-size: 26px;
+  margin-bottom: 16px;
+  word-break: break-all;
+}
+
+.result-url {
+  font-size: 11px;
+  color: var(--muted);
+  word-break: break-all;
+  margin-bottom: 16px;
+}
+
+.btn-copy {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1.5px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.btn-copy.copied {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.error {
+  font-size: 11px;
+  color: #c0392b;
+  text-align: center;
+  min-height: 16px;
+}
+
+/* ROLL LIST */
+#rollList {
+  width: 100%;
+  max-width: 360px;
+  margin-top: 32px;
+  display: none;
+}
+
+#rollList.visible { display: block; }
+
+.roll-list-title {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.roll-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(26,20,16,0.1);
+  font-size: 12px;
+}
+
+.roll-item-code { font-weight: 500; }
+.roll-item-meta { color: var(--muted); font-size: 11px; }
+.roll-item-status {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid currentColor;
+}
+.roll-item-status.open { color: #2ecc71; }
+.roll-item-status.closed { color: var(--muted); }
+
+footer {
+  margin-top: 48px;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+</style>
+</head>
+
+<body>
+
+<div class="logo">Mi Rollo — Admin</div>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div>
+    <label>Contraseña</label>
+    <input type="password" id="passwordInput" placeholder="••••••••">
+  </div>
+  <div class="error" id="loginError"></div>
+  <button class="btn" id="loginBtn">Entrar</button>
+</div>
+
+<!-- ADMIN -->
+<div id="adminScreen" style="display:none; width:100%; max-width:360px; flex-direction:column; align-items:center;">
+
+  <div class="card">
+    <div>
+      <label>Fotos del rollo</label>
+      <select id="maxPhotos">
+        <option value="12">12 fotos</option>
+        <option value="24">24 fotos</option>
+        <option value="36" selected>36 fotos</option>
+      </select>
+    </div>
+    <div class="error" id="createError"></div>
+    <button class="btn" id="createBtn">Crear rollo</button>
+  </div>
+
+  <div id="result">
+    <div class="result-label">Código del rollo</div>
+    <div class="result-code" id="resultCode">—</div>
+    <div class="result-label">URL para el chip NFC</div>
+    <div class="result-url" id="resultUrl">—</div>
+    <button class="btn-copy" id="copyBtn">Copiar URL</button>
+  </div>
+
+  <div id="rollList">
+    <div class="roll-list-title">Rollos creados</div>
+    <div id="rollItems"></div>
+  </div>
+
+</div>
+
+<footer>© 2026 Mi Rollo</footer>
+
+<script>
+const SUPABASE_URL      = "https://dzerpmnksarnywqpbgam.supabase.co"
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR6ZXJwbW5rc2Fybnl3cXBiZ2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzNjgxMjYsImV4cCI6MjA4NDk0NDEyNn0.UBkHG46bkiHA8Uuhc_4RO1nVryCq76OW_UkjMOP1iF4"
+const PASSWORD          = "Mirollo79"
+const BASE_URL          = "https://mirollo.net/?roll="
+
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+/* ── LOGIN ── */
+const loginBtn   = document.getElementById("loginBtn")
+const loginError = document.getElementById("loginError")
+
+loginBtn.onclick = () => {
+  const val = document.getElementById("passwordInput").value
+  if (val === PASSWORD) {
+    document.getElementById("loginScreen").style.display = "none"
+    const admin = document.getElementById("adminScreen")
+    admin.style.display = "flex"
+    loadRolls()
+  } else {
+    loginError.textContent = "Contraseña incorrecta"
+    setTimeout(() => loginError.textContent = "", 2000)
+  }
+}
+
+document.getElementById("passwordInput").addEventListener("keydown", e => {
+  if (e.key === "Enter") loginBtn.click()
+})
+
+/* ── GENERAR CÓDIGO ── */
+function generateCode() {
+  const chars = "abcdefghijkmnpqrstuvwxyz23456789"
+  let code = ""
+  for (let i = 0; i < 8; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)]
+  }
+  return code
+}
+
+/* ── CREAR ROLLO ── */
+const createBtn   = document.getElementById("createBtn")
+const createError = document.getElementById("createError")
+const result      = document.getElementById("result")
+const resultCode  = document.getElementById("resultCode")
+const resultUrl   = document.getElementById("resultUrl")
+
+createBtn.onclick = async () => {
+  createBtn.disabled = true
+  createError.textContent = ""
+
+  const maxPhotos = parseInt(document.getElementById("maxPhotos").value)
+  const code = generateCode()
+
+  const { error } = await db.from("rolls").insert({
+    code,
+    max_photos: maxPhotos,
+    is_closed: false,
+    title: null
+  })
+
+  if (error) {
+    createError.textContent = "Error al crear el rollo. Intentá de nuevo."
+    createBtn.disabled = false
+    return
+  }
+
+  const url = BASE_URL + code
+  resultCode.textContent = code
+  resultUrl.textContent  = url
+  result.classList.add("visible")
+  createBtn.disabled = false
+
+  loadRolls()
+}
+
+/* ── COPIAR URL ── */
+const copyBtn = document.getElementById("copyBtn")
+
+copyBtn.onclick = () => {
+  const url = resultUrl.textContent
+  navigator.clipboard.writeText(url).then(() => {
+    copyBtn.textContent = "¡Copiado!"
+    copyBtn.classList.add("copied")
+    setTimeout(() => {
+      copyBtn.textContent = "Copiar URL"
+      copyBtn.classList.remove("copied")
+    }, 2000)
+  })
+}
+
+/* ── CARGAR ROLLOS ── */
+async function loadRolls() {
+  const { data } = await db
+    .from("rolls")
+    .select("code, max_photos, is_closed, title")
+    .order("id", { ascending: false })
+    .limit(20)
+
+  if (!data || data.length === 0) return
+
+  const rollList  = document.getElementById("rollList")
+  const rollItems = document.getElementById("rollItems")
+
+  rollItems.innerHTML = ""
+  rollList.classList.add("visible")
+
+  data.forEach(r => {
+    const div = document.createElement("div")
+    div.className = "roll-item"
+    div.innerHTML = `
+      <div>
+        <div class="roll-item-code">${r.code}</div>
+        <div class="roll-item-meta">${r.max_photos} fotos${r.title ? ' · ' + r.title : ''}</div>
+      </div>
+      <div class="roll-item-status ${r.is_closed ? 'closed' : 'open'}">
+        ${r.is_closed ? 'Revelado' : 'Abierto'}
+      </div>
+    `
+    rollItems.appendChild(div)
+  })
+}
+</script>
+
+</body>
+</html>
+
