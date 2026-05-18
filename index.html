@@ -6,7 +6,7 @@
 <title>Mi Rollo</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital@0;1&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital@0;1&family=DM+Serif+Display:ital@0;1&family=Libre+Baskerville:wght@400&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
@@ -48,13 +48,19 @@ header {
 }
 
 .logo {
-  font-family: 'DM Serif Display', serif;
-  font-style: italic;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.logo span {
+  font-family: 'Libre Baskerville', serif;
   font-size: 13px;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.18em;
   color: var(--muted);
   text-transform: uppercase;
-  margin-bottom: 8px;
 }
 
 .roll-title {
@@ -261,6 +267,18 @@ input[type=file] { display: none; }
 
 .closed-badge.visible { display: inline-block; }
 
+/* FOOTER */
+footer {
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+  padding: 32px 20px 24px;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
 /* LIGHTBOX */
 #lightbox {
   position: fixed;
@@ -324,7 +342,18 @@ input[type=file] { display: none; }
 <body>
 
 <header>
-  <div class="logo">Mi Rollo</div>
+  <div class="logo">
+    <svg width="44" height="44" viewBox="0 0 72 58" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M24 18 L30 8 L42 8 L48 18" stroke="#8a7f72" stroke-width="1.8" stroke-linejoin="round"/>
+      <rect x="6" y="18" width="60" height="36" rx="5" stroke="#8a7f72" stroke-width="1.8"/>
+      <circle cx="36" cy="36" r="14" stroke="#8a7f72" stroke-width="1.8"/>
+      <circle cx="36" cy="36" r="8" stroke="#8a7f72" stroke-width="1.8"/>
+      <circle cx="36" cy="36" r="3" fill="#8a7f72"/>
+      <circle cx="58" cy="22" r="3.5" stroke="#8a7f72" stroke-width="1.4"/>
+      <rect x="8" y="21" width="8" height="6" rx="1.5" stroke="#8a7f72" stroke-width="1.4"/>
+    </svg>
+    <span>MI ROLLO</span>
+  </div>
   <div class="roll-title" id="rollTitle">—</div>
   <div class="closed-badge" id="closedBadge">Revelado</div>
   <div class="counter" id="counter">— / — fotos</div>
@@ -419,7 +448,7 @@ function updateUI() {
   }
 
   const isFull = total === MAX && pending.length > 0
-  titleWrap.classList.toggle("visible", isFull)
+  titleWrap.classList.add("visible")
   revealBtn.disabled = total !== MAX || pending.length === 0
 }
 
@@ -542,6 +571,7 @@ async function load() {
 
   rollData = roll
   rollTitle.textContent = roll.title || "Nombre del Rollo"
+  if (!roll.is_closed) titleWrap.classList.add("visible")
 
   /* cargar fotos */
   const { data: photos } = await db
