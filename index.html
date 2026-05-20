@@ -109,7 +109,7 @@ header {
   padding: 0 20px;
   width: 100%;
   max-width: 420px;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .btn-choose {
@@ -149,7 +149,45 @@ header {
 
 input[type=file] { display: none; }
 
-/* LOADER */
+/* TITLE INPUT */
+.title-input-wrap {
+  width: 100%;
+  max-width: 420px;
+  padding: 0 20px;
+  margin-bottom: 20px;
+}
+
+#titleInput {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(26,20,16,0.2);
+  background: transparent;
+  color: var(--ink);
+  font-family: 'DM Serif Display', serif;
+  font-size: 16px;
+  outline: none;
+  -webkit-appearance: none;
+  transition: border-color 0.15s;
+}
+
+#titleInput:focus { border-color: var(--ink); }
+#titleInput::placeholder { color: var(--muted); }
+
+/* UPLOADING INDICATOR */
+.uploading-bar {
+  display: none;
+  width: 100%;
+  max-width: 420px;
+  padding: 0 20px 12px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  text-align: center;
+}
+.uploading-bar.visible { display: block; }
+
+/* LOADER reveal */
 .loader {
   display: none;
   text-align: center;
@@ -160,8 +198,47 @@ input[type=file] { display: none; }
   width: 100%;
   max-width: 420px;
 }
-
 .loader.visible { display: block; }
+
+/* ERROR */
+.error-msg {
+  display: none;
+  padding: 0 20px;
+  width: 100%;
+  max-width: 420px;
+  font-size: 11px;
+  color: #c0392b;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+  text-align: center;
+}
+.error-msg.visible { display: block; }
+
+/* CLOSED STATE */
+.closed-badge {
+  display: none;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  padding: 3px 8px;
+  margin: 0 auto 20px;
+}
+.closed-badge.visible { display: inline-block; }
+
+/* FOOTER */
+footer {
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+  padding: 32px 20px 24px;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
 
 /* GRID */
 .grid {
@@ -191,92 +268,8 @@ input[type=file] { display: none; }
 
 .thumb:active { transform: scale(0.96); }
 
-.thumb.pending { opacity: 0.7; }
-
-.menu-btn {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  background: rgba(0,0,0,0.55);
-  color: #fff;
-  border-radius: 50%;
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  line-height: 1;
-}
-
-/* ERROR */
-.error-msg {
-  display: none;
-  padding: 0 20px;
-  width: 100%;
-  max-width: 420px;
-  font-size: 11px;
-  color: #c0392b;
-  letter-spacing: 0.05em;
-  margin-bottom: 12px;
-  text-align: center;
-}
-
-.error-msg.visible { display: block; }
-
-/* TITLE INPUT */
-.title-input-wrap {
-  display: none;
-  width: 100%;
-  max-width: 420px;
-  padding: 0 20px;
-  margin-bottom: 12px;
-}
-
-.title-input-wrap.visible { display: block; }
-
-#titleInput {
-  width: 100%;
-  padding: 12px 14px;
-  border-radius: 8px;
-  border: 1.5px solid var(--ink);
-  background: transparent;
-  color: var(--ink);
-  font-family: 'DM Serif Display', serif;
-  font-size: 16px;
-  outline: none;
-  -webkit-appearance: none;
-}
-
-#titleInput::placeholder { color: var(--muted); }
-
-
-.closed-badge {
-  display: none;
-  font-size: 10px;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--muted);
-  border: 1px solid currentColor;
-  border-radius: 4px;
-  padding: 3px 8px;
-  margin: 0 auto 20px;
-}
-
-.closed-badge.visible { display: inline-block; }
-
-/* FOOTER */
-footer {
-  width: 100%;
-  max-width: 420px;
-  text-align: center;
-  padding: 32px 20px 24px;
-  font-size: 10px;
-  letter-spacing: 0.15em;
-  color: var(--muted);
-  text-transform: uppercase;
+.thumb.uploading {
+  opacity: 0.4;
 }
 
 /* LIGHTBOX */
@@ -326,16 +319,10 @@ footer {
 .lb-prev { left: 0; }
 .lb-next { right: 0; }
 
-/* REVEAL ANIMATION */
 @keyframes fadeIn {
   from { opacity: 0; transform: scale(0.97); }
   to   { opacity: 1; transform: scale(1); }
 }
-
-.thumb.revealed {
-  animation: fadeIn 0.4s ease forwards;
-}
-
 </style>
 </head>
 
@@ -371,8 +358,10 @@ footer {
   <button class="btn-reveal" id="revealBtn" disabled>Revelar</button>
 </div>
 
+<div class="uploading-bar" id="uploadingBar">Subiendo fotos…</div>
+
 <div class="title-input-wrap" id="titleWrap">
-  <input type="text" id="titleInput" placeholder="Nombre de tu rollo" maxlength="60">
+  <input type="text" id="titleInput" placeholder="Nombre del Rollo" maxlength="60">
 </div>
 
 <div class="loader" id="loader">Revelando rollo…</div>
@@ -406,23 +395,24 @@ const ROLL = getRollCode()
 
 /* ── STATE ── */
 let gallery  = []   // fotos ya en Supabase
-let pending  = []   // fotos elegidas, aún no subidas
-let rollData = null // datos del rollo desde tabla rolls
-let locked   = false
+let rollData = null
+let uploading = false
+let revealLocked = false
 
 /* ── ELEMENTOS ── */
-const grid        = document.getElementById("grid")
-const counter     = document.getElementById("counter")
-const progressFill= document.getElementById("progressFill")
-const fileInput   = document.getElementById("fileInput")
-const fileLabel   = document.getElementById("fileLabel")
-const revealBtn   = document.getElementById("revealBtn")
-const loader      = document.getElementById("loader")
-const errorMsg    = document.getElementById("errorMsg")
-const titleWrap  = document.getElementById("titleWrap")
-const titleInput = document.getElementById("titleInput")
-const closedBadge = document.getElementById("closedBadge")
-const controls    = document.getElementById("controls")
+const grid          = document.getElementById("grid")
+const counter       = document.getElementById("counter")
+const progressFill  = document.getElementById("progressFill")
+const fileInput     = document.getElementById("fileInput")
+const fileLabel     = document.getElementById("fileLabel")
+const revealBtn     = document.getElementById("revealBtn")
+const loader        = document.getElementById("loader")
+const errorMsg      = document.getElementById("errorMsg")
+const rollTitle     = document.getElementById("rollTitle")
+const closedBadge   = document.getElementById("closedBadge")
+const controls      = document.getElementById("controls")
+const titleInput    = document.getElementById("titleInput")
+const uploadingBar  = document.getElementById("uploadingBar")
 
 /* ── UI ── */
 function showError(msg) {
@@ -434,83 +424,65 @@ function showError(msg) {
 function updateUI() {
   if (!rollData) return
   const MAX   = rollData.max_photos
-  const total = gallery.length + pending.length
+  const total = gallery.length
   counter.textContent = `${total} / ${MAX} fotos`
   progressFill.style.width = `${Math.min(100, (total / MAX) * 100)}%`
 
   if (rollData.is_closed) {
-    revealBtn.textContent = "Rollo revelado"
-    revealBtn.disabled    = true
+    revealBtn.textContent   = "Rollo revelado"
+    revealBtn.disabled      = true
     fileLabel.style.display = "none"
-    titleWrap.classList.remove("visible")
+    titleInput.disabled     = true
     closedBadge.classList.add("visible")
     return
   }
 
-  const isFull = total === MAX && pending.length > 0
-  titleWrap.classList.add("visible")
-  revealBtn.disabled = total !== MAX || pending.length === 0
+  revealBtn.disabled = total < MAX || uploading
 }
 
 /* ── GRID ── */
 function render() {
   grid.innerHTML = ""
-  const all = [...gallery, ...pending]
-
-  all.forEach((p, i) => {
+  gallery.forEach((p, i) => {
     const wrap = document.createElement("div")
     wrap.className = "thumb-wrap"
 
     const img = document.createElement("img")
     img.src       = p.url
-    img.className = "thumb" + (i >= gallery.length ? " pending" : "")
-    img.onclick   = () => openLightbox(i)
+    img.className = "thumb" + (p.uploading ? " uploading" : "")
+    img.onclick   = () => { if (!p.uploading) openLightbox(i) }
     wrap.appendChild(img)
-
-    if (i >= gallery.length) {
-      const btn = document.createElement("div")
-      btn.className  = "menu-btn"
-      btn.textContent = "✕"
-      btn.onclick = (e) => {
-        e.stopPropagation()
-        pending.splice(i - gallery.length, 1)
-        render()
-        updateUI()
-      }
-      wrap.appendChild(btn)
-    }
-
     grid.appendChild(wrap)
   })
 }
 
-/* ── FILE INPUT ── */
-fileInput.onchange = (e) => {
+/* ── FILE INPUT — sube cada foto de inmediato ── */
+fileInput.onchange = async (e) => {
+  if (rollData?.is_closed) return
   const MAX   = rollData?.max_photos || 36
   const files = Array.from(e.target.files)
-
-  files.forEach(file => {
-    const exists = pending.some(p => p.file?.name === file.name && p.file?.size === file.size)
-    if (!exists && gallery.length + pending.length < MAX) {
-      pending.push({ file, url: URL.createObjectURL(file) })
-    }
-  })
-
   fileInput.value = ""
+
+  const spots = MAX - gallery.length
+  if (spots <= 0) return
+
+  const toUpload = files.slice(0, spots)
+
+  // agregar al grid con estado "uploading"
+  toUpload.forEach(file => {
+    gallery.push({ url: URL.createObjectURL(file), uploading: true, file })
+  })
   render()
   updateUI()
-}
 
-/* ── REVELAR ── */
-revealBtn.onclick = async () => {
-  if (locked || pending.length === 0 || rollData?.is_closed) return
+  uploading = true
+  uploadingBar.classList.add("visible")
 
-  locked = true
-  loader.classList.add("visible")
-  revealBtn.disabled = true
+  for (let i = 0; i < gallery.length; i++) {
+    const p = gallery[i]
+    if (!p.uploading) continue
 
-  try {
-    for (const p of pending) {
+    try {
       const ext  = p.file.name.split(".").pop() || "jpg"
       const path = `${ROLL}/${crypto.randomUUID()}.${ext}`
 
@@ -525,26 +497,50 @@ revealBtn.onclick = async () => {
       })
       if (insErr) throw insErr
 
-      gallery.push({ url: data.publicUrl })
+      gallery[i] = { url: data.publicUrl, uploading: false }
+    } catch (err) {
+      console.error(err)
+      gallery.splice(i, 1)
+      i--
+      showError("Error al subir una foto. Intentá de nuevo.")
     }
 
-    /* cerrar el rollo en DB con título */
+    render()
+    updateUI()
+  }
+
+  uploading = false
+  uploadingBar.classList.remove("visible")
+  updateUI()
+}
+
+/* ── REVELAR ── */
+revealBtn.onclick = async () => {
+  if (revealLocked || rollData?.is_closed) return
+  if (gallery.length < rollData?.max_photos) return
+
+  revealLocked = true
+  loader.classList.add("visible")
+  revealBtn.disabled = true
+
+  try {
     const title = titleInput.value.trim() || "Mi Rollo"
-    const { error: closeErr } = await db
+
+    const { error } = await db
       .from("rolls")
       .update({ is_closed: true, title })
       .eq("code", ROLL)
-    if (closeErr) throw closeErr
+
+    if (error) throw error
 
     rollData.is_closed = true
     rollData.title     = title
     rollTitle.textContent = title
-    pending = []
 
   } catch (err) {
     showError("Error al revelar. Intentá de nuevo.")
     console.error(err)
-    locked = false
+    revealLocked = false
   } finally {
     loader.classList.remove("visible")
   }
@@ -555,7 +551,6 @@ revealBtn.onclick = async () => {
 
 /* ── LOAD ── */
 async function load() {
-  /* cargar datos del rollo */
   const { data: roll, error: rollErr } = await db
     .from("rolls")
     .select("*")
@@ -571,16 +566,14 @@ async function load() {
 
   rollData = roll
   rollTitle.textContent = roll.title || "Nombre del Rollo"
-  if (!roll.is_closed) titleWrap.classList.add("visible")
 
-  /* cargar fotos */
   const { data: photos } = await db
     .from("photos_v2")
     .select("url")
     .eq("roll_code", ROLL)
     .order("created_at", { ascending: true })
 
-  gallery = photos || []
+  gallery = (photos || []).map(p => ({ url: p.url, uploading: false }))
 
   render()
   updateUI()
@@ -592,15 +585,15 @@ const lb    = document.getElementById("lightbox")
 const lbImg = document.getElementById("lightboxImg")
 
 function openLightbox(i) {
-  lbIdx   = i
-  lbImg.src = [...gallery, ...pending][i].url
+  lbIdx     = i
+  lbImg.src = gallery[i].url
   lb.classList.add("open")
 }
 
 function lbNav(d) {
-  const all = [...gallery, ...pending]
-  lbIdx     = (lbIdx + d + all.length) % all.length
-  lbImg.src = all[lbIdx].url
+  const confirmed = gallery.filter(p => !p.uploading)
+  lbIdx = (lbIdx + d + confirmed.length) % confirmed.length
+  lbImg.src = confirmed[lbIdx].url
 }
 
 document.querySelector(".lb-close").onclick = () => lb.classList.remove("open")
