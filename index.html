@@ -459,6 +459,18 @@ function updateUI() {
   revealBtn.disabled = total < MAX || uploading
 }
 
+/* ── TÍTULO AUTO-SAVE ── */
+let titleSaveTimer = null
+
+titleInput.addEventListener("input", () => {
+  clearTimeout(titleSaveTimer)
+  titleSaveTimer = setTimeout(async () => {
+    if (!rollData || rollData.is_closed) return
+    const title = titleInput.value.trim()
+    await db.from("rolls").update({ title: title || null }).eq("code", ROLL)
+  }, 800)
+})
+
 /* ── ELIMINAR FOTO ── */
 async function deletePhoto(i) {
   const p = gallery[i]
@@ -620,6 +632,7 @@ async function load() {
 
   rollData = roll
   rollTitle.textContent = roll.title || "Nombre del Rollo"
+  if (roll.title && !roll.is_closed) titleInput.value = roll.title
 
   const { data: photos } = await db
     .from("photos_v2")
