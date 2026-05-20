@@ -459,6 +459,28 @@ function updateUI() {
   revealBtn.disabled = total < MAX || uploading
 }
 
+/* ── ELIMINAR FOTO ── */
+async function deletePhoto(i) {
+  const p = gallery[i]
+  if (!p || p.uploading) return
+
+  try {
+    // extraer path del storage desde la URL
+    const url  = new URL(p.url)
+    const path = url.pathname.split(`/object/public/${BUCKET}/`)[1]
+
+    await db.storage.from(BUCKET).remove([path])
+    await db.from("photos_v2").delete().eq("url", p.url)
+
+    gallery.splice(i, 1)
+    render()
+    updateUI()
+  } catch (err) {
+    console.error(err)
+    showError("Error al eliminar la foto.")
+  }
+}
+
 /* ── GRID ── */
 function render() {
   grid.innerHTML = ""
@@ -471,6 +493,19 @@ function render() {
     img.className = "thumb" + (p.uploading ? " uploading" : "")
     img.onclick   = () => { if (!p.uploading) openLightbox(i) }
     wrap.appendChild(img)
+
+    // botón X solo si el rollo no está revelado y la foto ya subió
+    if (!rollData?.is_closed && !p.uploading) {
+      const del = document.createElement("div")
+      del.className   = "delete-btn"
+      del.textContent = "✕"
+      del.onclick = (e) => {
+        e.stopPropagation()
+        deletePhoto(i)
+      }
+      wrap.appendChild(del)
+    }
+
     grid.appendChild(wrap)
   })
 }
